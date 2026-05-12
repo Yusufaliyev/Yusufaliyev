@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverli Royal Roulette</title>
+    <!-- Firebase SDK (Internet kerak) -->
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --gold: linear-gradient(145deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --gold-solid: #b38728;
+        }
+        body { 
+            font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; color: #fcf6ba; background: #050505 center/cover no-repeat;
+        }
+
+        #menu-btn { position: absolute; top: 20px; right: 20px; font-size: 35px; cursor: pointer; color: #bf953f; z-index: 100; }
+        
+        #side-panel {
+            position: fixed; top: 0; right: -300px; width: 260px; height: 100%;
+            background: rgba(15, 15, 15, 0.98); border-left: 2px solid #bf953f;
+            transition: 0.4s; z-index: 99; padding: 40px 20px;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        #side-panel.open { right: 0; }
+
+        .tab-btn { background: var(--gold); color: #000; border: none; padding: 10px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; }
+        .settings-section { display: none; flex-direction: column; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; }
+        .settings-section.active { display: flex; }
+
+        #canvas-wrapper {
+            position: relative; padding: 12px; background: var(--gold); border-radius: 50%;
+            box-shadow: 0 0 60px rgba(184, 134, 11, 0.4); border: 6px solid #8a6d3b;
+        }
+        canvas { background: #400000; border-radius: 50%; display: block; max-width: 85vw; height: auto; }
+
+        #spinBtn {
+            margin-top: 30px; background: var(--gold); color: #111; border: none;
+            padding: 16px 50px; font-size: 20px; font-weight: bold; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+        #spinBtn:disabled { opacity: 0.3; }
+
+        #winner-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 200;
+        }
+        #winner-img { max-width: 85%; max-height: 65%; border: 5px solid gold; border-radius: 20px; }
+        .signature { position: fixed; bottom: 10px; font-size: 13px; background: var(--gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body>
+
+    <div id="menu-btn" onclick="toggleMenu()">⋮</div>
+
+    <div id="side-panel">
+        <h2 style="color: gold; text-align: center;">MENU</h2>
+        <button class="tab-btn" onclick="document.getElementById('set-sec').classList.toggle('active')">⚙️ Sozlamalar</button>
+        <div id="set-sec" class="settings-section">
+            <label>Ekran foni:</label><input type="file" id="bgInput">
+            <label>Baraban foni:</label><input type="file" id="wheelBgInput">
+            <label>Rasmlar:</label><input type="file" id="fileInput" multiple>
+        </div>
+        <button class="tab-btn" style="background:#27ae60; color:white;" onclick="resetGame()">🔄 Yangi O'yin</button>
+        <p id="status" style="font-size:11px; color:lime; text-align:center;"></p>
+    </div>
+
+    <h1>Royal Seks</h1>
+
+    <div id="canvas-wrapper">
+        <canvas id="canvas" width="500" height="500"></canvas>
+    </div>
+
+    <button id="spinBtn" disabled>Aylantirish</button>
+
+    <div id="winner-overlay" onclick="this.style.display='none'">
+        <h1 style="color:gold">G'OLIB!</h1>
+        <img id="winner-img" src="">
+        <p style="color:white">Yopish uchun bosing</p>
+    </div>
+
+    <div class="signature">🌺 Xasanjon & Nozimaxon 🌺</div>
+
+    <script>
+      // Parol tizimi
+const PASSWORD = "Yusufaliyev_3550."; // Shu
+let access = sessionStorage.getItem('access_granted');
+
+if (access !== 'true') {
+    let userPass = prompt("Ilovaga kirish uchun parolni kiriting:");
+    if (userPass === PASSWORD) {
+        sessionStorage.setItem('access_granted', 'true');
+        alert("Xush kelibsiz!");
+    } else {
+        alert("Parol noto'g'ri! Kirish taqiqlandi.");
+        document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>Kirish taqiqlangan!</h1>";
+        throw new Error("Wrong Password"); // Kodni to'xtatadi
+    }
+}
+
+        // FIREBASE SOZLAMALARI (Rasmda ko'ringan ma'lumotlar)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcHL_lCA4kYWDxKW1uAia3Nm5Kgb3pdwM",
+            authDomain: "yusufaliyev-db792.firebaseapp.com",
+            databaseURL: "https://yusufaliyev-db792-default-rtdb.firebaseio.com", // Manzilni to'g'riladim
+            projectId: "yusufaliyev-db792",
+            storageBucket: "yusufaliyev-db792.appspot.com",
+            messagingSenderId: "530423783273",
+            appId: "1:530423783273:web:8d06265e9558dd8c55a7f8"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const status = document.getElementById('status');
+        
+        let images = [], wheelBgImage = null, rotation = 0, isSpinning = false;
+        const cw = 500, cx = 250, outerR = 240, innerR = 195, imgSlotR = 215, ballTrackR = 175;
+        let ball = { angle: 0, speed: 0, r: ballTrackR };
+
+        function toggleMenu() { document.getElementById('side-panel').classList.toggle('open'); }
+        
+        function resetGame() { rotation = 0; ball.angle = 0; ball.speed = 0; draw(); }
+
+        // --- Serverdan Yuklash ---
+        function loadFromServer() {
+            status.innerText = "Server yuklanmoqda...";
+            db.ref('royal_data').on('value', (snap) => {
+                const data = snap.val();
+                if(!data) return;
+                
+                if(data.bg) document.body.style.backgroundImage = `url(${data.bg})`;
+                if(data.wBg) {
+                    const img = new Image();
+                    img.onload = () => { wheelBgImage = img; draw(); };
+                    img.src = data.wBg;
+                }
+                if(data.imgs) {
+                    images = [];
+                    data.imgs.forEach((url, i) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            images.push(img);
+                            if(images.length === data.imgs.length) {
+                                spinBtn.disabled = false;
+                                draw();
+                            }
+                        };
+                        img.src = url;
+                    });
+                }
+                status.innerText = "Server Tayyor ✅";
+            });
+        }
+
+        function save(key, val) { db.ref('royal_data/' + key).set(val); }
+
+        // --- Fayllar ---
+        document.getElementById('bgInput').onchange = (e) => {
+            const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result);
+            r.readAsDataURL(e.target.files[0]);
+        };
+        document.getElementById('wheelBgInput').onchange = (e) => {
+            const r = new FileReader(); r.onload = (ev) => save('wBg', ev.target.result);
+            r.readAsDataURL(e.target.files[0]);
+        };
+        document.getElementById('fileInput').onchange = (e) => {
+            const files = Array.from(e.target.files);
+            const urls = [];
+            files.forEach(f => {
+                const r = new FileReader();
+                r.onload = (ev) => {
+                    urls.push(ev.target.result);
+                    if(urls.length === files.length) save('imgs', urls);
+                };
+                r.readAsDataURL(f);
+            });
+        };
+
+        // --- Chizish ---
+        function draw() {
+            ctx.clearRect(0,0,cw,cw);
+            ctx.beginPath(); ctx.arc(cx, cx, outerR, 0, Math.PI*2);
+            ctx.fillStyle = '#b38728'; ctx.fill();
+
+            ctx.save(); ctx.beginPath(); ctx.arc(cx, cx, innerR, 0, Math.PI*2); ctx.clip();
+            if(wheelBgImage) ctx.drawImage(wheelBgImage, cx-innerR, cx-innerR, innerR*2, innerR*2);
+            else { ctx.fillStyle = '#400000'; ctx.fill(); }
+            ctx.restore();
+
+            if(images.length > 0) {
+                const n = images.length, arc = (Math.PI*2)/n;
+                images.forEach((img, i) => {
+                    ctx.save(); ctx.translate(cx, cx); ctx.rotate(rotation + i*arc + arc/2);
+                    ctx.beginPath(); ctx.arc(0, -imgSlotR, 35, 0, Math.PI*2); ctx.clip();
+                    ctx.drawImage(img, -35, -imgSlotR-35, 70, 70); ctx.restore();
+                });
+            }
+
+            ctx.save(); ctx.translate(cx,cx); ctx.rotate(ball.angle);
+            ctx.beginPath(); ctx.arc(ball.r, 0, 11, 0, Math.PI*2);
+            ctx.fillStyle = '#fff'; ctx.shadowBlur = 10; ctx.shadowColor = "#fff"; ctx.fill();
+            ctx.restore();
+        }
+
+        spinBtn.onclick = () => {
+            if(isSpinning) return;
+            isSpinning = true;
+            let wSpd = Math.random()*0.1 + 0.35;
+            ball.speed = -(wSpd*1.5 + Math.random()*0.1); ball.r = ballTrackR;
+
+            function anim() {
+                rotation += wSpd; wSpd *= 0.988;
+                ball.angle += ball.speed; ball.speed *= 0.991;
+                if(Math.abs(ball.speed) < 0.06 && ball.r > innerR-25) ball.r -= 0.6;
+                draw();
+                if(wSpd > 0.001 || Math.abs(ball.speed) > 0.005) requestAnimationFrame(anim);
+                else {
+                    isSpinning = false;
+                    const n = images.length;
+                    let b = (ball.angle % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+                    let w = (rotation % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+                    let diff = (Math.PI*2 - b + (w + Math.PI/2)) % (Math.PI*2);
+                    let idx = Math.floor(diff / (Math.PI*2/n)) % n;
+                    document.getElementById('winner-img').src = images[idx].src;
+                    document.getElementById('winner-overlay').style.display = 'flex';
+                }
+            }
+            anim();
+        };
+
+        window.onload = loadFromServer;
+    </script>
+</body>
+</html>
