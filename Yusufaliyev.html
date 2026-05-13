@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Serverli Royal Roulette</title>
-    <!-- Firebase SDK (Internet kerak) -->
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
 
@@ -32,6 +31,9 @@
         .tab-btn { background: var(--gold); color: #000; border: none; padding: 10px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; }
         .settings-section { display: none; flex-direction: column; gap: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; }
         .settings-section.active { display: flex; }
+
+        /* Admin bloklash stili */
+        .settings-section.locked { filter: blur(5px); pointer-events: none; opacity: 0.5; }
 
         #canvas-wrapper {
             position: relative; padding: 12px; background: var(--gold); border-radius: 50%;
@@ -61,7 +63,7 @@
 
     <div id="side-panel">
         <h2 style="color: gold; text-align: center;">MENU</h2>
-        <button class="tab-btn" onclick="document.getElementById('set-sec').classList.toggle('active')">⚙️ Sozlamalar</button>
+        <button class="tab-btn" onclick="openSettings()">⚙️ Sozlamalar</button>
         <div id="set-sec" class="settings-section">
             <label>Ekran foni:</label><input type="file" id="bgInput">
             <label>Baraban foni:</label><input type="file" id="wheelBgInput">
@@ -88,27 +90,57 @@
     <div class="signature">🌺 Yusufaliyev 🌺</div>
 
     <script>
-      // Parol tizimi
-const PASSWORD = "123"; // Shu
-let access = sessionStorage.getItem('access_granted');
+        // Kirish paroli (sessionStorage)
+        const LOGIN_PASSWORD = "123";
+        let access = sessionStorage.getItem('access_granted');
 
-if (access !== 'true') {
-    let userPass = prompt("Ilovaga kirish uchun parolni kiriting:");
-    if (userPass === PASSWORD) {
-        sessionStorage.setItem('access_granted', 'true');
-        alert("Xush kelibsiz!");
-    } else {
-        alert("Parol noto'g'ri! Kirish taqiqlandi.");
-        document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>Kirish taqiqlangan!</h1>";
-        throw new Error("Wrong Password"); // Kodni to'xtatadi
-    }
-}
+        if (access !== 'true') {
+            let userPass = prompt("Ilovaga kirish uchun parolni kiriting:");
+            if (userPass === LOGIN_PASSWORD) {
+                sessionStorage.setItem('access_granted', 'true');
+                alert("Xush kelibsiz!");
+            } else {
+                alert("Parol noto'g'ri!");
+                document.body.innerHTML = "<h1>Kirish taqiqlangan!</h1>";
+                throw new Error("Wrong Password");
+            }
+        }
 
-        // FIREBASE SOZLAMALARI (Rasmda ko'ringan ma'lumotlar)
+        // --- ADMIN (AVTOR) PAROL TIZIMI ---
+        const ADMIN_PASSWORD = "7777"; 
+        let isAdmin = false;
+
+        function toggleMenu() { 
+            const panel = document.getElementById('side-panel');
+            if (panel.classList.contains('open')) {
+                panel.classList.remove('open');
+                isAdmin = false;
+                document.getElementById('set-sec').classList.remove('active');
+            } else {
+                panel.classList.add('open');
+            }
+        }
+
+        function openSettings() {
+            if (!isAdmin) {
+                const pass = prompt("Sozlamalar uchun admin parolini kiriting:");
+                if (pass === ADMIN_PASSWORD) {
+                    isAdmin = true;
+                    document.getElementById('set-sec').classList.add('active');
+                    alert("Ruxsat berildi!");
+                } else {
+                    alert("Xato! Bu bo'lim faqat avtor uchun.");
+                }
+            } else {
+                document.getElementById('set-sec').classList.toggle('active');
+            }
+        }
+
+        // Firebase Sozlamalari
         const firebaseConfig = {
             apiKey: "AIzaSyAcHL_lCA4kYWDxKW1uAia3Nm5Kgb3pdwM",
             authDomain: "yusufaliyev-db792.firebaseapp.com",
-            databaseURL: "https://yusufaliyev-db792-default-rtdb.firebaseio.com", // Manzilni to'g'riladim
+            databaseURL: "https://yusufaliyev-db792-default-rtdb.firebaseio.com",
             projectId: "yusufaliyev-db792",
             storageBucket: "yusufaliyev-db792.appspot.com",
             messagingSenderId: "530423783273",
@@ -127,11 +159,8 @@ if (access !== 'true') {
         const cw = 500, cx = 250, outerR = 240, innerR = 195, imgSlotR = 215, ballTrackR = 175;
         let ball = { angle: 0, speed: 0, r: ballTrackR };
 
-        function toggleMenu() { document.getElementById('side-panel').classList.toggle('open'); }
-        
         function resetGame() { rotation = 0; ball.angle = 0; ball.speed = 0; draw(); }
 
-        // --- Serverdan Yuklash ---
         function loadFromServer() {
             status.innerText = "Server yuklanmoqda...";
             db.ref('royal_data').on('value', (snap) => {
@@ -162,9 +191,8 @@ if (access !== 'true') {
             });
         }
 
-        function save(key, val) { db.ref('royal_data/' + key).set(val); }
+        function save(key, val) { if(isAdmin) db.ref('royal_data/' + key).set(val); }
 
-        // --- Fayllar ---
         document.getElementById('bgInput').onchange = (e) => {
             const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result);
             r.readAsDataURL(e.target.files[0]);
@@ -186,7 +214,6 @@ if (access !== 'true') {
             });
         };
 
-        // --- Chizish ---
         function draw() {
             ctx.clearRect(0,0,cw,cw);
             ctx.beginPath(); ctx.arc(cx, cx, outerR, 0, Math.PI*2);
