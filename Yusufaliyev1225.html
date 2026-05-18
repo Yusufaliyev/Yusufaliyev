@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serverli Royal Roulette PRO v2</title>
+    <title>Serverli Royal Roulette PRO v3</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
 
@@ -66,7 +66,7 @@
             max-height: 220px; overflow-y: auto; background: #000;
             border: 1px solid gold; padding: 8px; font-size: 12px; border-radius: 5px; margin-bottom: 10px;
         }
-        .list-item { padding: 8px; border-bottom: 1px solid #222; color: #fff; line-height: 1.4; }
+        .list-item { padding: 8px; border-bottom: 1px solid #222; color: #fff; line-height: 1.4; position: relative; }
         .ip-text { font-size: 10px; color: #aaa; display: block; }
         
         /* Live qizil nuqta */
@@ -95,6 +95,7 @@
         .sub-tabs { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; }
         .sub-tab-btn { background: #222; color: gold; border: 1px solid gold; padding: 5px 8px; font-size: 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
         .sub-tab-btn.active { background: var(--gold); color: black; }
+        .unban-btn { position: absolute; right: 5px; top: 8px; background: lime; color: black; border: none; padding: 3px 6px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -135,9 +136,6 @@
             
             <button id="onlineCounterBtn" class="tab-btn" style="background:#c0392b; color:white;" onclick="openOnlineModal()">👀 Xozirda online (0)</button>
         </div>
-        
-        <hr border="1" color="gold" style="width:100%;">
-        <button class="tab-btn" style="background:#444; color:white;" onclick="adminDirectLogin()">🛡️ Admin Kirish</button>
         
         <p id="status" style="font-size:11px; color:lime; text-align:center; margin:5px 0;"></p>
     </div>
@@ -184,7 +182,12 @@
                 <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('60$ / 1 yil', 365)">60$ (1yil)</button>
                 <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('100$ / cheksiz', 99999)">100$ (∞)</button>
             </div>
-            <div id="otpDisplay" style="text-align:center; font-size:16px; font-weight:bold; color:lime; margin: 5px 0;"></div>
+
+            <button class="tab-btn" style="width:100%; background:#e67e22; color:white; margin-top:5px;" onclick="generateOneTimeCode()">🎫 1 Martalik Kod Generatsiya</button>
+            <div id="otpDisplay" style="text-align:center; font-size:14px; font-weight:bold; color:lime; margin: 5px 0;"></div>
+
+            <h4 style="color:#c0392b; margin: 10px 0 5px 0;">🚫 Bloklangan kiruvchilar:</h4>
+            <div id="bannedListBlock" class="list-container" style="border-color:#c0392b;"></div>
 
             <button class="tab-btn" style="width:100%; background:#c0392b; color:white; margin-top:10px;" onclick="closeModal('adminModal')">Yopish</button>
         </div>
@@ -250,69 +253,121 @@
         }
         userDevice = detectDevice();
 
+        // IP manzili yuklanishi va darhol xavfsizlik nazorati boshlanishi
         fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
-            .then(data => { userIp = data.ip; })
-            .catch(() => { userIp = "Yashirin IP"; });
+            .then(data => { 
+                userIp = data.ip; 
+                checkBanStatusAndInit();
+            })
+            .catch(() => { 
+                userIp = "Yashirin IP"; 
+                checkBanStatusAndInit();
+            });
 
-        // --- KIRISH HUQUQI VA TARIF MUDDATI TEKSHIRUVI ---
-        let access = sessionStorage.getItem('access_granted');
-        let isAdminLoggedIn = sessionStorage.getItem('admin_logged') === 'true';
-
-        if (access !== 'true' && !isAdminLoggedIn) {
-            let userPass = prompt("Ilovaga va tarifga kirish uchun parolni kiriting:");
-            if (userPass === MAIN_PASSWORD) {
-                sessionStorage.setItem('access_granted', 'true');
-                usedCodeGlobal = "Asosiy parol (123)";
-                userTarifGlobal = "Cheksiz (Admin ruxsatli)";
-                initUserPresence();
-                alert("Xush kelibsiz!");
-            } else if (userPass === ADMIN_FIXED_PASSWORD) {
-                sessionStorage.setItem('admin_logged', 'true');
-                isAdminLoggedIn = true;
-                usedCodeGlobal = "Admin Parol (7777)";
-                userTarifGlobal = "To'liq Administrator";
-                alert("Admin sifatida tizimga kirdingiz!");
-                location.reload();
-            } else {
-                // VIP / Tarif kodlarini tekshirish
-                db.ref('otp_codes').once('value', (snap) => {
-                    let valid = false;
-                    let selectedNode = null;
-                    let now = new Date().getTime();
-
-                    snap.forEach(child => {
-                        let c = child.val();
-                        if (c.code == userPass) {
-                            let expireTime = new Date(c.expireDate).getTime();
-                            if (now <= expireTime) {
-                                valid = true;
-                                selectedNode = c;
-                            }
-                        }
-                    });
-
-                    if (valid) {
-                        sessionStorage.setItem('access_granted', 'true');
-                        usedCodeGlobal = userPass;
-                        userTarifGlobal = selectedNode.tarif;
-                        initUserPresence();
-                        alert(`Kod tasdiqlandi! Tarifingiz: ${selectedNode.tarif}. Amal qilish muddati: ${selectedNode.expireDate}`);
-                        location.reload();
-                    } else {
-                        alert("Parol noto'g'ri, yoki tarif muddati tugagan (kalendar bo'yicha)!");
-                        document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>Kirish taqiqlangan yoki Tarif muddati tugagan!</h1>";
-                        throw new Error("Wrong Password");
-                    }
+        function checkBanStatusAndInit() {
+            // Avval bloklanganlar ro'yxatida borligini tekshirish
+            db.ref('banned_users').once('value', (snap) => {
+                let isBanned = false;
+                snap.forEach(child => {
+                    if(child.val().ip === userIp) { isBanned = true; }
                 });
-            }
-        } else {
-            initUserPresence();
+
+                if(isBanned) {
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>🚫 Siz tizim xavfsizligi tomonidan BLOKLANGANSIZ!</h1>";
+                    return;
+                }
+                
+                // Agar bloklanmagan bo'lsa kirish huquqini tekshirishga o'tamiz
+                startAccessVerification();
+            });
         }
 
-        // Admin interfeysini yoqish
-        if (isAdminLoggedIn) {
-            document.getElementById('adminMenuBlock').style.display = 'flex';
+        function startAccessVerification() {
+            let access = sessionStorage.getItem('access_granted');
+            let isAdminLoggedIn = sessionStorage.getItem('admin_logged') === 'true';
+
+            if (access !== 'true' && !isAdminLoggedIn) {
+                let attempts = parseInt(localStorage.getItem('login_attempts') || "0");
+                if (attempts >= 3) {
+                    // Qurilmani avtomatik Firebase blokiga yozish
+                    db.ref('banned_users').push({ ip: userIp, device: userDevice, time: new Date().toLocaleString() });
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>🚫 Ketma-ket 3 marta noto'g'ri kod! Siz BLOKLANDANSIZ!</h1>";
+                    return;
+                }
+
+                let userPass = prompt(`Ilovaga kirish kodini kiriting (Qolgan urinishlar: ${3 - attempts}):`);
+                
+                if (userPass === ADMIN_FIXED_PASSWORD) {
+                    sessionStorage.setItem('admin_logged', 'true');
+                    localStorage.setItem('login_attempts', "0");
+                    alert("Admin panel faollashdi!");
+                    location.reload();
+                } else if (userPass === MAIN_PASSWORD) {
+                    sessionStorage.setItem('access_granted', 'true');
+                    localStorage.setItem('login_attempts', "0");
+                    usedCodeGlobal = "Asosiy parol (123)";
+                    userTarifGlobal = "Cheksiz (Admin ruxsatli)";
+                    initUserPresence();
+                    alert("Xush kelibsiz!");
+                } else {
+                    // Firebase VIP tarif kodlari va 1 martalik kodlarni sinxron tekshirish
+                    db.ref('otp_codes').once('value', (snap) => {
+                        let valid = false;
+                        let selectedNode = null;
+                        let nodeKey = null;
+                        let now = new Date().getTime();
+
+                        snap.forEach(child => {
+                            let c = child.val();
+                            if (c.code == userPass) {
+                                if (c.isOneTime) {
+                                    valid = true;
+                                    selectedNode = c;
+                                    nodeKey = child.key;
+                                } else {
+                                    let expireTime = new Date(c.expireDate).getTime();
+                                    if (now <= expireTime) {
+                                        valid = true;
+                                        selectedNode = c;
+                                    }
+                                }
+                            }
+                        });
+
+                        if (valid) {
+                            sessionStorage.setItem('access_granted', 'true');
+                            localStorage.setItem('login_attempts', "0");
+                            usedCodeGlobal = userPass;
+                            userTarifGlobal = selectedNode.tarif;
+
+                            // Agar bir martalik kod bo'lsa uni bazadan o'chiramiz
+                            if(selectedNode.isOneTime) {
+                                db.ref(`otp_codes/${nodeKey}`).remove();
+                            }
+
+                            initUserPresence();
+                            alert(`Kod tasdiqlandi! Ruxsat berildi.`);
+                            location.reload();
+                        } else {
+                            attempts++;
+                            localStorage.setItem('login_attempts', attempts.toString());
+                            if(attempts >= 3) {
+                                db.ref('banned_users').push({ ip: userIp, device: userDevice, time: new Date().toLocaleString() });
+                                alert("3 marta xato terildi va siz bloklandingiz!");
+                            } else {
+                                alert(`Kod noto'g'ri yoki muddati tugagan! Qolgan urinishlar: ${3 - attempts}`);
+                            }
+                            location.reload();
+                        }
+                    });
+                }
+            } else {
+                if (isAdminLoggedIn) {
+                    document.getElementById('adminMenuBlock').style.display = 'flex';
+                }
+                initUserPresence();
+            }
         }
 
         // --- LIVE (ONLINE PRESENCE) TIZIMI ---
@@ -325,8 +380,8 @@
                     sessionId: mySessionId,
                     deviceName: userDevice,
                     ip: userIp,
-                    tarif: userTarifGlobal,
-                    code: usedCodeGlobal,
+                    tarif: sessionStorage.getItem('admin_logged') === 'true' ? "To'liq Administrator" : userTarifGlobal,
+                    code: sessionStorage.getItem('admin_logged') === 'true' ? "Admin Parol" : usedCodeGlobal,
                     loginTime: new Date().toLocaleString(),
                     lastActive: firebase.database.ServerValue.TIMESTAMP
                 };
@@ -342,7 +397,6 @@
             let count = snap.numChildren();
             document.getElementById('onlineCounterBtn').innerText = `👀 Xozirda online (${count})`;
         });
-
 
         // --- ASOSIY RULETKA LOGIKASI ---
         const canvas = document.getElementById('canvas');
@@ -380,26 +434,16 @@
             };
             
             db.ref('pro_users').push(regData).then(() => {
-                alert("Siz muvaffaqiyatli ro'yxatdan o'tdingiz! Admin kodni tasdiqlagach, ruxsat olasiz.");
+                alert("Siz muvaffaqiyatli ro'yxatdan o'tdingiz! Kod yaralgach foydalana olasiz.");
                 closeModal('regModal');
             });
         }
 
         // --- ADMIN PANEL FUNKSIYALARI ---
-        function adminDirectLogin() {
-            let p = prompt("Yagona doimiy Admin parolini kiriting:");
-            if(p === ADMIN_FIXED_PASSWORD) {
-                sessionStorage.setItem('admin_logged', 'true');
-                alert("Muvaffaqiyatli kirdingiz!");
-                location.reload();
-            } else {
-                alert("Xato parol!");
-            }
-        }
-
         function openAdminModal() {
             document.getElementById('adminModal').style.display = 'flex';
             filterSubs('all', document.querySelector('.sub-tabs .sub-tab-btn'));
+            loadBannedUsers();
         }
 
         function filterSubs(tarif, element) {
@@ -433,11 +477,48 @@
                 code: code,
                 tarif: tarif,
                 expireDate: expireString,
+                isOneTime: false,
                 createdAt: new Date().toLocaleString()
             };
 
             db.ref('otp_codes').push(codeData).then(() => {
-                document.getElementById('otpDisplay').innerHTML = `Yaratildi: <span style="color:yellow">${code}</span><br>Muddati: ${expireString} gacha`;
+                document.getElementById('otpDisplay').innerHTML = `Yaratildi: <span style="color:yellow">${code}</span> (Tarif: ${tarif})<br>Muddati: ${expireString} gacha`;
+            });
+        }
+
+        // 1 Martalik kirish kodi generatsiya qilish
+        function generateOneTimeCode() {
+            let code = Math.floor(1000 + Math.random() * 9000);
+            let codeData = {
+                code: code,
+                tarif: "1 Martalik Kirish",
+                isOneTime: true,
+                createdAt: new Date().toLocaleString()
+            };
+
+            db.ref('otp_codes').push(codeData).then(() => {
+                document.getElementById('otpDisplay').innerHTML = `🎫 1 Martalik Kod: <span style="color:cyan; font-size:18px;">${code}</span><br><small>(Faqat 1 marta kirishga yaroqli)</small>`;
+            });
+        }
+
+        // Bloklanganlarni boshqarish
+        function loadBannedUsers() {
+            db.ref('banned_users').on('value', (snap) => {
+                let html = "";
+                snap.forEach(child => {
+                    let b = child.val();
+                    html += `<div class="list-item">
+                                📱 ${b.device} <span class="ip-text">🌐 IP: ${b.ip} (${b.time})</span>
+                                <button class="unban-btn" onclick="unbanUser('${child.key}')">Blokdan chiqarish</button>
+                             </div>`;
+                });
+                document.getElementById('bannedListBlock').innerHTML = html || "Bloklangan qurilmalar yo'q.";
+            });
+        }
+
+        function unbanUser(key) {
+            db.ref(`banned_users/${key}`).remove().then(() => {
+                alert("Foydalanuvchi blokdan chiqarildi!");
             });
         }
 
@@ -449,7 +530,7 @@
 
         function showOnlineTab1() {
             document.getElementById('onlineTab1Block').style.display = 'block';
-            document.getElementById('onlineTab2Block').style.style = 'none';
+            document.getElementById('onlineTab2Block').style.display = 'none';
             
             db.ref('online_users').once('value', (snap) => {
                 let html = "";
@@ -474,8 +555,7 @@
                 let arr = [];
                 snap.forEach(child => { arr.push(child.val()); });
                 
-                // Oxirgi kirgan paytiga qarab teskari tartibda saralash
-                arr.reverse();
+                arr.reverse(); // Oxirgi faoliyat tepada
 
                 arr.forEach((o, index) => {
                     html += `<div class="list-item">
@@ -488,14 +568,14 @@
             });
         }
 
-        // --- MULTIMEDIA VA SEVERDAN YUKLASH (KIM KIRSA HAM KO'RINADI) ---
+        // --- MULTIMEDIA VA SERVEDAN SINXRONIZATSIYA ---
         function toggleMsc() {
             const btn = document.getElementById('mscToggleBtn');
             if(bgMsc.paused) { bgMsc.play().catch(()=>{}); btn.innerText = "🎵 Musiqani o'chirish"; btn.style.background = "#27ae60"; }
             else { bgMsc.pause(); btn.innerText = "🔇 Musiqani yoqish"; btn.style.background = "#c0392b"; }
         }
 
-        function save(key, val) { if(isAdminLoggedIn) db.ref('royal_data/' + key).set(val); }
+        function save(key, val) { if(sessionStorage.getItem('admin_logged') === 'true') db.ref('royal_data/' + key).set(val); }
 
         document.getElementById('bgInput').onchange = (e) => {
             const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result);
@@ -543,7 +623,7 @@
                 if(data.winAudio) winSnd.src = data.winAudio;
                 if(data.bgAudio && bgMsc.src !== data.bgAudio) {
                     bgMsc.src = data.bgAudio; bgMsc.volume = 0.4;
-                    bgMsc.play().catch(() => console.log("Musiqa chalinishi foydalanuvchi harakatini kutmoqda..."));
+                    bgMsc.play().catch(() => console.log("Musiqa chalinishi kutilmoqda..."));
                 }
                 status.innerText = "Server Sinxronlandi ✅";
             });
