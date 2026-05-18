@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serverli Royal Roulette PRO v3</title>
+    <title>Serverli Royal Roulette PRO v3.3</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
 
@@ -96,6 +96,16 @@
         .sub-tab-btn { background: #222; color: gold; border: 1px solid gold; padding: 5px 8px; font-size: 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
         .sub-tab-btn.active { background: var(--gold); color: black; }
         .unban-btn { position: absolute; right: 5px; top: 8px; background: lime; color: black; border: none; padding: 3px 6px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        
+        /* Bazani tozalash tugmasi stili */
+        .clear-db-btn {
+            background: #c0392b; color: white; border: 1px solid #ff4d4d;
+            padding: 10px; font-weight: bold; border-radius: 6px; cursor: pointer;
+            text-transform: uppercase; font-size: 11px; margin-top: 10px;
+            box-shadow: 0 0 10px rgba(192, 57, 43, 0.4);
+            transition: 0.2s;
+        }
+        .clear-db-btn:hover { background: #ff0000; box-shadow: 0 0 15px #ff0000; }
     </style>
 </head>
 <body>
@@ -130,6 +140,8 @@
                 <label>4) Aylanish ovozi:</label><input type="file" id="spinAudioInput" accept="audio/*">
                 <label>5) Yutgan ovoz:</label><input type="file" id="winAudioInput" accept="audio/*">
                 <label>6) Fon musiqasi:</label><input type="file" id="bgAudioInput" accept="audio/*">
+                
+                <button class="clear-db-btn" onclick="clearFullDatabase()">⚠️ Bazani Butunlay Tozalash</button>
             </div>
             
             <button class="tab-btn" style="background:#2980b9; color:white;" onclick="openAdminModal()">🔑 ALOHIDA ADMIN OYNASI</button>
@@ -200,7 +212,7 @@
             <button class="tab-btn" style="width:100%; margin-bottom:8px; background:#2980b9; color:white;" onclick="showOnlineTab1()">1-TUGMA: Xozirda Faol (Online)</button>
             <div id="onlineTab1Block" class="list-container"></div>
 
-            <button class="tab-btn" style="width:100%; margin-bottom:8px; background:#27ae60; color:white;" onclick="showOnlineTab2()">2-TUGMA: Oxirgi 1 oylik tarix</button>
+            <button class="tab-btn" style="width:100%; margin-bottom:8px; background:#27ae60; color:white;" onclick="showOnlineTab2()">2-TUGMA: Oxirgi faoliyat tarixi</button>
             <div id="onlineTab2Block" class="list-container" style="display:none;"></div>
 
             <button class="tab-btn" style="width:100%; background:#c0392b; color:white;" onclick="closeModal('onlineModal')">Yopish</button>
@@ -223,11 +235,13 @@
         // --- ASOSIY SOZLAMALAR ---
         const MAIN_PASSWORD = "123";
         const ADMIN_FIXED_PASSWORD = "7777";
-        let mySessionId = "user_" + Math.floor(Math.random() * 1000000);
+        
+        if(!localStorage.getItem('my_unique_session_id')) {
+            localStorage.setItem('my_unique_session_id', "user_" + Math.floor(Math.random() * 1000000) + "_" + Math.floor(Math.random() * 1000));
+        }
+        let mySessionId = localStorage.getItem('my_unique_session_id');
         let userIp = "Aniqlanmoqda...";
         let userDevice = "Noma'lum Qurilma";
-        let usedCodeGlobal = "Noma'lum";
-        let userTarifGlobal = "Tekshirilmoqda...";
 
         // Firebase konfiguratsiyasi
         const firebaseConfig = {
@@ -242,7 +256,6 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Qurilma turi va IP ni aniqlash
         function detectDevice() {
             const ua = navigator.userAgent;
             if (/android/i.test(ua)) return "Android Qurilma";
@@ -253,7 +266,6 @@
         }
         userDevice = detectDevice();
 
-        // IP manzili yuklanishi va darhol xavfsizlik nazorati boshlanishi
         fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
             .then(data => { 
@@ -266,7 +278,6 @@
             });
 
         function checkBanStatusAndInit() {
-            // Avval bloklanganlar ro'yxatida borligini tekshirish
             db.ref('banned_users').once('value', (snap) => {
                 let isBanned = false;
                 snap.forEach(child => {
@@ -278,19 +289,23 @@
                     return;
                 }
                 
-                // Agar bloklanmagan bo'lsa kirish huquqini tekshirishga o'tamiz
                 startAccessVerification();
             });
         }
 
         function startAccessVerification() {
-            let access = sessionStorage.getItem('access_granted');
-            let isAdminLoggedIn = sessionStorage.getItem('admin_logged') === 'true';
+            let savedCode = localStorage.getItem('my_saved_auth_code');
+            let savedTarif = localStorage.getItem('my_saved_auth_tarif');
+            let isAdmin = localStorage.getItem('my_admin_status') === 'true';
 
-            if (access !== 'true' && !isAdminLoggedIn) {
+            if (savedCode || isAdmin) {
+                if (isAdmin) {
+                    document.getElementById('adminMenuBlock').style.display = 'flex';
+                }
+                initUserPresence(savedCode || "Admin", savedTarif || "To'liq Administrator");
+            } else {
                 let attempts = parseInt(localStorage.getItem('login_attempts') || "0");
                 if (attempts >= 3) {
-                    // Qurilmani avtomatik Firebase blokiga yozish
                     db.ref('banned_users').push({ ip: userIp, device: userDevice, time: new Date().toLocaleString() });
                     document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>🚫 Ketma-ket 3 marta noto'g'ri kod! Siz BLOKLANDANSIZ!</h1>";
                     return;
@@ -298,25 +313,28 @@
 
                 let userPass = prompt(`Ilovaga kirish kodini kiriting (Qolgan urinishlar: ${3 - attempts}):`);
                 
+                if (!userPass) {
+                    document.body.innerHTML = "<h1 style='color:orange; text-align:center; margin-top:20%'>Kod kiritilmadi. Saytni yangilab qayta urining!</h1>";
+                    return;
+                }
+
                 if (userPass === ADMIN_FIXED_PASSWORD) {
-                    sessionStorage.setItem('admin_logged', 'true');
+                    localStorage.setItem('my_admin_status', 'true');
                     localStorage.setItem('login_attempts', "0");
-                    alert("Admin panel faollashdi!");
+                    alert("Admin panel muvaffaqiyatli ochildi!");
                     location.reload();
                 } else if (userPass === MAIN_PASSWORD) {
-                    sessionStorage.setItem('access_granted', 'true');
+                    localStorage.setItem('my_saved_auth_code', userPass);
+                    localStorage.setItem('my_saved_auth_tarif', "Cheksiz (Admin ruxsatli)");
                     localStorage.setItem('login_attempts', "0");
-                    usedCodeGlobal = "Asosiy parol (123)";
-                    userTarifGlobal = "Cheksiz (Admin ruxsatli)";
-                    initUserPresence();
                     alert("Xush kelibsiz!");
+                    location.reload();
                 } else {
-                    // Firebase VIP tarif kodlari va 1 martalik kodlarni sinxron tekshirish
                     db.ref('otp_codes').once('value', (snap) => {
                         let valid = false;
                         let selectedNode = null;
                         let nodeKey = null;
-                        let now = new Date().getTime();
+                        let nowMs = new Date().getTime();
 
                         snap.forEach(child => {
                             let c = child.val();
@@ -326,8 +344,7 @@
                                     selectedNode = c;
                                     nodeKey = child.key;
                                 } else {
-                                    let expireTime = new Date(c.expireDate).getTime();
-                                    if (now <= expireTime) {
+                                    if (nowMs <= c.expireTimestamp) {
                                         valid = true;
                                         selectedNode = c;
                                     }
@@ -336,18 +353,15 @@
                         });
 
                         if (valid) {
-                            sessionStorage.setItem('access_granted', 'true');
+                            localStorage.setItem('my_saved_auth_code', userPass);
+                            localStorage.setItem('my_saved_auth_tarif', selectedNode.tarif);
                             localStorage.setItem('login_attempts', "0");
-                            usedCodeGlobal = userPass;
-                            userTarifGlobal = selectedNode.tarif;
 
-                            // Agar bir martalik kod bo'lsa uni bazadan o'chiramiz
                             if(selectedNode.isOneTime) {
                                 db.ref(`otp_codes/${nodeKey}`).remove();
                             }
 
-                            initUserPresence();
-                            alert(`Kod tasdiqlandi! Ruxsat berildi.`);
+                            alert(`Kod tasdiqlandi! Xush kelibsiz.`);
                             location.reload();
                         } else {
                             attempts++;
@@ -362,37 +376,36 @@
                         }
                     });
                 }
-            } else {
-                if (isAdminLoggedIn) {
-                    document.getElementById('adminMenuBlock').style.display = 'flex';
-                }
-                initUserPresence();
             }
         }
 
-        // --- LIVE (ONLINE PRESENCE) TIZIMI ---
-        function initUserPresence() {
-            setTimeout(() => {
-                const myConnectionsRef = db.ref(`online_users/${mySessionId}`);
-                const lastOnlineRef = db.ref(`history_users/${mySessionId}`);
-                
-                const myData = {
-                    sessionId: mySessionId,
-                    deviceName: userDevice,
-                    ip: userIp,
-                    tarif: sessionStorage.getItem('admin_logged') === 'true' ? "To'liq Administrator" : userTarifGlobal,
-                    code: sessionStorage.getItem('admin_logged') === 'true' ? "Admin Parol" : usedCodeGlobal,
-                    loginTime: new Date().toLocaleString(),
-                    lastActive: firebase.database.ServerValue.TIMESTAMP
-                };
+        function initUserPresence(code, tarif) {
+            let currentCode = code || localStorage.getItem('my_saved_auth_code') || "Noma'lum";
+            let currentTarif = tarif || localStorage.getItem('my_saved_auth_tarif') || "Oddiy foydalanuvchi";
+            
+            if (localStorage.getItem('my_admin_status') === 'true') {
+                currentCode = "Admin Parol";
+                currentTarif = "To'liq Administrator";
+            }
 
-                myConnectionsRef.setValue(myData);
-                lastOnlineRef.setValue(myData);
-                myConnectionsRef.onDisconnect().remove();
-            }, 2000);
+            const myConnectionsRef = db.ref(`online_users/${mySessionId}`);
+            const lastOnlineRef = db.ref(`history_users/${mySessionId}`);
+            
+            const myData = {
+                sessionId: mySessionId,
+                deviceName: userDevice,
+                ip: userIp,
+                tarif: currentTarif,
+                code: currentCode,
+                loginTime: new Date().toLocaleString(),
+                lastActive: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            myConnectionsRef.setValue(myData);
+            lastOnlineRef.setValue(myData);
+            myConnectionsRef.onDisconnect().remove();
         }
 
-        // Onlayn taymer va hisoblagich
         db.ref('online_users').on('value', (snap) => {
             let count = snap.numChildren();
             document.getElementById('onlineCounterBtn').innerText = `👀 Xozirda online (${count})`;
@@ -414,7 +427,6 @@
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
         function toggleMenu() { document.getElementById('side-panel').classList.toggle('open'); }
 
-        // --- TARIF REGISTRATSIYA ---
         function openRegModal(tarif) {
             document.getElementById('selectedTarifTitle').innerText = "Tarif: " + tarif;
             document.getElementById('regModal').style.display = 'flex';
@@ -434,7 +446,7 @@
             };
             
             db.ref('pro_users').push(regData).then(() => {
-                alert("Siz muvaffaqiyatli ro'yxatdan o'tdingiz! Kod yaralgach foydalana olasiz.");
+                alert("Ro'yxatdan o'tdingiz! Admin kod bergach foydalana olasiz.");
                 closeModal('regModal');
             });
         }
@@ -466,27 +478,28 @@
             });
         }
 
-        // VIP 4 xonali kod generatsiya qilish (Kalendar bo'yicha muddatli)
         function generateVipCode(tarif, days) {
             let code = Math.floor(1000 + Math.random() * 9000);
             let today = new Date();
             today.setDate(today.getDate() + days);
+            
             let expireString = today.toLocaleString();
+            let expireTimestamp = today.getTime();
 
             let codeData = {
                 code: code,
                 tarif: tarif,
                 expireDate: expireString,
+                expireTimestamp: expireTimestamp,
                 isOneTime: false,
                 createdAt: new Date().toLocaleString()
             };
 
             db.ref('otp_codes').push(codeData).then(() => {
-                document.getElementById('otpDisplay').innerHTML = `Yaratildi: <span style="color:yellow">${code}</span> (Tarif: ${tarif})<br>Muddati: ${expireString} gacha`;
+                document.getElementById('otpDisplay').innerHTML = `Yaratildi: <span style="color:yellow; font-size:16px;">${code}</span> (Tarif: ${tarif})<br>Muddati: ${expireString} gacha`;
             });
         }
 
-        // 1 Martalik kirish kodi generatsiya qilish
         function generateOneTimeCode() {
             let code = Math.floor(1000 + Math.random() * 9000);
             let codeData = {
@@ -501,7 +514,6 @@
             });
         }
 
-        // Bloklanganlarni boshqarish
         function loadBannedUsers() {
             db.ref('banned_users').on('value', (snap) => {
                 let html = "";
@@ -522,6 +534,33 @@
             });
         }
 
+        // --- BAZANI BUTUNLAY TOZALASH FUNKSIYASI ---
+        function clearFullDatabase() {
+            if(localStorage.getItem('my_admin_status') !== 'true') {
+                return alert("Sizda bu amalni bajarish huquqi yo'q!");
+            }
+
+            let firstConfirm = confirm("⚠️ DIQQAT! Platformadagi barcha rasmlar, musiqalar, foydalanuvchilar ma'lumotlari va yaratilgan VIP kodlar butunlay o'chib ketadi. Rozimisiz?");
+            if(firstConfirm) {
+                let secondConfirm = confirm("🛑 Katta yo'qotish! Qaroringiz qat'iymi? Bu amalni ortga qaytarib bo'lmaydi!");
+                if(secondConfirm) {
+                    status.innerText = "Baza tozalanmoqda...";
+                    
+                    // O'chirilishi kerak bo'lgan barcha tugunlar ro'yxati
+                    let nodesToClear = ['royal_data', 'otp_codes', 'pro_users', 'online_users', 'history_users'];
+                    let promises = nodesToClear.map(node => db.ref(node).remove());
+
+                    Promise.all(promises).then(() => {
+                        alert("Baza muvaffaqiyatli tozalandi! Tizim qayta yuklanadi.");
+                        location.reload();
+                    }).catch((err) => {
+                        alert("Xatolik yuz berdi: " + err.message);
+                        status.innerText = "Sinxronizatsiya xatosi ❌";
+                    });
+                }
+            }
+        }
+
         // --- ONLINE MONITOR FUNKSIYALARI ---
         function openOnlineModal() {
             document.getElementById('onlineModal').style.display = 'flex';
@@ -539,10 +578,10 @@
                     html += `<div class="list-item">
                                 <span class="live-dot"></span> <b>Tarif: ${o.tarif}</b><br>
                                 📱 Qurilma: ${o.deviceName} <br>
-                                <span class="ip-text">🌐 IP-Manzil: ${o.ip} (Kod: ${o.code})</span>
+                                <span class="ip-text">🌐 IP: ${o.ip} (Kod: ${o.code})</span>
                              </div>`;
                 });
-                document.getElementById('onlineTab1Block').innerHTML = html || "Faol foydalanuvchilar yo'q.";
+                document.getElementById('onlineTab1Block').innerHTML = html || "Faol onlayn foydalanuvchilar yo'q.";
             });
         }
 
@@ -554,12 +593,11 @@
                 let html = "";
                 let arr = [];
                 snap.forEach(child => { arr.push(child.val()); });
-                
-                arr.reverse(); // Oxirgi faoliyat tepada
+                arr.reverse(); 
 
                 arr.forEach((o, index) => {
                     html += `<div class="list-item">
-                                <b>#${index + 1} Tarif: ${o.tarif}</b> | Terilgan Kod: <span style="color:cyan">${o.code}</span><br>
+                                <b>#${index + 1} Tarif: ${o.tarif}</b> | Kod: <span style="color:cyan">${o.code}</span><br>
                                 📱 Qurilma: ${o.deviceName} <span class="ip-text">🌐 IP: ${o.ip}</span>
                                 <small style="color:orange">Kirgan vaqti: ${o.loginTime}</small>
                              </div>`;
@@ -575,7 +613,7 @@
             else { bgMsc.pause(); btn.innerText = "🔇 Musiqani yoqish"; btn.style.background = "#c0392b"; }
         }
 
-        function save(key, val) { if(sessionStorage.getItem('admin_logged') === 'true') db.ref('royal_data/' + key).set(val); }
+        function save(key, val) { if(localStorage.getItem('my_admin_status') === 'true') db.ref('royal_data/' + key).set(val); }
 
         document.getElementById('bgInput').onchange = (e) => {
             const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result);
@@ -609,7 +647,17 @@
         function loadFromServer() {
             status.innerText = "Server yuklanmoqda...";
             db.ref('royal_data').on('value', (snap) => {
-                const data = snap.val(); if(!data) return;
+                const data = snap.val(); 
+                if(!data) {
+                    // Agar baza bo'sh bo'lsa, ruletkani boshlang'ich holatga keltiramiz
+                    document.body.style.backgroundImage = "none";
+                    wheelBgImage = null;
+                    images = [];
+                    spinBtn.disabled = true;
+                    draw();
+                    status.innerText = "Baza bo'sh ⚠️ Fayllarni yuklang";
+                    return;
+                }
                 if(data.bg) document.body.style.backgroundImage = `url(${data.bg})`;
                 if(data.wBg) { const img = new Image(); img.onload = () => { wheelBgImage = img; draw(); }; img.src = data.wBg; }
                 if(data.imgs) {
@@ -629,7 +677,6 @@
             });
         }
 
-        // --- CHIZISH VA ANIMATSIYA ---
         function draw() {
             ctx.clearRect(0,0,cw,cw);
             ctx.beginPath(); ctx.arc(cx, cx, outerR, 0, Math.PI*2); ctx.fillStyle = '#b38728'; ctx.fill();
@@ -646,9 +693,9 @@
                     ctx.drawImage(img, -35, -imgSlotR-35, 70, 70); ctx.restore();
                 });
             }
-            ctx.save(); ctx.translate(cx,cx); ctx.rotate(ball.angle);
+            ctx.save(); ctx.save(); ctx.translate(cx,cx); ctx.rotate(ball.angle);
             ctx.beginPath(); ctx.arc(ball.r, 0, 11, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.shadowBlur = 10; ctx.shadowColor = "#fff"; ctx.fill();
-            ctx.restore();
+            ctx.restore(); ctx.restore();
         }
 
         function resetGame() { rotation = 0; ball.angle = 0; ball.speed = 0; draw(); }
