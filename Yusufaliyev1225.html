@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serverli Royal Roulette PRO v3.3</title>
+    <title>Serverli Royal Roulette PRO v4.1</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
 
@@ -49,12 +49,12 @@
         /* MODAL OYNALAR */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); display: none; justify-content: center;
+            background: rgba(0,0,0,0.95); display: none; justify-content: center;
             align-items: center; z-index: 200; padding: 15px;
         }
         .modal-content {
             background: #111; border: 2px solid gold; border-radius: 15px;
-            padding: 25px; width: 100%; max-width: 420px; box-shadow: 0 0 30px gold; color: white;
+            padding: 25px; width: 100%; max-width: 450px; box-shadow: 0 0 30px gold; color: white;
         }
         .modal-content h3 { color: gold; margin-top: 0; text-align: center; text-transform: uppercase; }
         .modal-content input {
@@ -63,11 +63,11 @@
         }
         
         .list-container {
-            max-height: 220px; overflow-y: auto; background: #000;
+            max-height: 240px; overflow-y: auto; background: #000;
             border: 1px solid gold; padding: 8px; font-size: 12px; border-radius: 5px; margin-bottom: 10px;
         }
-        .list-item { padding: 8px; border-bottom: 1px solid #222; color: #fff; line-height: 1.4; position: relative; }
-        .ip-text { font-size: 10px; color: #aaa; display: block; }
+        .list-item { padding: 8px; border-bottom: 1px solid #222; color: #fff; line-height: 1.5; position: relative; }
+        .ip-text { font-size: 10px; color: #aaa; display: block; margin-top: 3px; }
         
         /* Live qizil nuqta */
         .live-dot {
@@ -92,18 +92,21 @@
         .tarif-card { background: rgba(255,215,0,0.1); border: 1px solid gold; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 11px; }
         .tarif-card:hover { background: var(--gold); color: black; }
         
-        .sub-tabs { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; }
-        .sub-tab-btn { background: #222; color: gold; border: 1px solid gold; padding: 5px 8px; font-size: 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
-        .sub-tab-btn.active { background: var(--gold); color: black; }
-        .unban-btn { position: absolute; right: 5px; top: 8px; background: lime; color: black; border: none; padding: 3px 6px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .sub-tabs { display: flex; gap: 4px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .sub-tab-btn { background: #222; color: gold; border: 1px solid gold; padding: 6px 8px; font-size: 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; flex: 1; text-align: center; }
+        .sub-tab-btn.active { background: var(--gold); color: black; font-weight: bold; }
         
-        /* Bazani tozalash tugmasi stili */
+        /* Boshqaruv tugmalari */
+        .ban-action-btn { position: absolute; right: 5px; top: 8px; background: #c0392b; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .ban-action-btn:hover { background: red; }
+        .unban-action-btn { position: absolute; right: 5px; top: 8px; background: #27ae60; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .unban-action-btn:hover { background: lime; color: black; }
+
         .clear-db-btn {
             background: #c0392b; color: white; border: 1px solid #ff4d4d;
             padding: 10px; font-weight: bold; border-radius: 6px; cursor: pointer;
             text-transform: uppercase; font-size: 11px; margin-top: 10px;
-            box-shadow: 0 0 10px rgba(192, 57, 43, 0.4);
-            transition: 0.2s;
+            box-shadow: 0 0 10px rgba(192, 57, 43, 0.4); transition: 0.2s;
         }
         .clear-db-btn:hover { background: #ff0000; box-shadow: 0 0 15px #ff0000; }
     </style>
@@ -198,22 +201,23 @@
             <button class="tab-btn" style="width:100%; background:#e67e22; color:white; margin-top:5px;" onclick="generateOneTimeCode()">🎫 1 Martalik Kod Generatsiya</button>
             <div id="otpDisplay" style="text-align:center; font-size:14px; font-weight:bold; color:lime; margin: 5px 0;"></div>
 
-            <h4 style="color:#c0392b; margin: 10px 0 5px 0;">🚫 Bloklangan kiruvchilar:</h4>
-            <div id="bannedListBlock" class="list-container" style="border-color:#c0392b;"></div>
-
             <button class="tab-btn" style="width:100%; background:#c0392b; color:white; margin-top:10px;" onclick="closeModal('adminModal')">Yopish</button>
         </div>
     </div>
 
     <div id="onlineModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 500px;">
-            <h3>Onlayn Monitor</h3>
+            <h3>Onlayn Monitor & Boshqaruv</h3>
             
-            <button class="tab-btn" style="width:100%; margin-bottom:8px; background:#2980b9; color:white;" onclick="showOnlineTab1()">1-TUGMA: Xozirda Faol (Online)</button>
+            <div class="sub-tabs" style="margin-bottom: 12px;">
+                <button id="t1" class="sub-tab-btn active" onclick="switchMonitorTab(1)">1-Faol (Online)</button>
+                <button id="t2" class="sub-tab-btn" onclick="switchMonitorTab(2)">2-Oxirgi Tarix</button>
+                <button id="t3" class="sub-tab-btn" onclick="switchMonitorTab(3)" style="background:#c0392b; color:white;">3-Barcha Foydalanuvchilar & Blok</button>
+            </div>
+            
             <div id="onlineTab1Block" class="list-container"></div>
-
-            <button class="tab-btn" style="width:100%; margin-bottom:8px; background:#27ae60; color:white;" onclick="showOnlineTab2()">2-TUGMA: Oxirgi faoliyat tarixi</button>
             <div id="onlineTab2Block" class="list-container" style="display:none;"></div>
+            <div id="onlineTab3Block" class="list-container" style="display:none;"></div>
 
             <button class="tab-btn" style="width:100%; background:#c0392b; color:white;" onclick="closeModal('onlineModal')">Yopish</button>
         </div>
@@ -237,10 +241,10 @@
         const ADMIN_FIXED_PASSWORD = "7777";
         
         if(!localStorage.getItem('my_unique_session_id')) {
-            localStorage.setItem('my_unique_session_id', "user_" + Math.floor(Math.random() * 1000000) + "_" + Math.floor(Math.random() * 1000));
+            localStorage.setItem('my_unique_session_id', "user_" + Math.floor(Math.random() * 1000000) + "_" + Math.floor(Math.random() * 100));
         }
         let mySessionId = localStorage.getItem('my_unique_session_id');
-        let userIp = "Aniqlanmoqda...";
+        let userIp = "";
         let userDevice = "Noma'lum Qurilma";
 
         // Firebase konfiguratsiyasi
@@ -256,16 +260,23 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
+        // JONLI MONITOR SONINI TEKSHIRISH
+        db.ref('online_users').on('value', (snap) => {
+            let count = snap.numChildren();
+            document.getElementById('onlineCounterBtn').innerText = `👀 Xozirda online (${count})`;
+        });
+
         function detectDevice() {
             const ua = navigator.userAgent;
             if (/android/i.test(ua)) return "Android Qurilma";
             if (/iPhone|iPad/i.test(ua)) return "iOS Qurilma";
             if (/Windows/i.test(ua)) return "Windows PC";
             if (/Macintosh/i.test(ua)) return "Mac PC";
-            return "Mobil/Brauzer";
+            return "Mobil Qurilma";
         }
         userDevice = detectDevice();
 
+        // IP MANZILNI ANIQLASH VA TIZIMGA ULASH
         fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
             .then(data => { 
@@ -273,7 +284,7 @@
                 checkBanStatusAndInit();
             })
             .catch(() => { 
-                userIp = "Yashirin IP"; 
+                userIp = "Yashirin_IP_" + Math.floor(Math.random()*1000); 
                 checkBanStatusAndInit();
             });
 
@@ -285,10 +296,9 @@
                 });
 
                 if(isBanned) {
-                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>🚫 Siz tizim xavfsizligi tomonidan BLOKLANGANSIZ!</h1>";
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%; font-family:sans-serif;'>🚫 Siz tizim xavfsizligi tomonidan BLOKLANGANSIZ!</h1>";
                     return;
                 }
-                
                 startAccessVerification();
             });
         }
@@ -302,19 +312,18 @@
                 if (isAdmin) {
                     document.getElementById('adminMenuBlock').style.display = 'flex';
                 }
-                initUserPresence(savedCode || "Admin", savedTarif || "To'liq Administrator");
+                initUserPresence(savedCode || "Admin Parol", savedTarif || "To'liq Administrator");
             } else {
                 let attempts = parseInt(localStorage.getItem('login_attempts') || "0");
                 if (attempts >= 3) {
                     db.ref('banned_users').push({ ip: userIp, device: userDevice, time: new Date().toLocaleString() });
-                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>🚫 Ketma-ket 3 marta noto'g'ri kod! Siz BLOKLANDANSIZ!</h1>";
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%; font-family:sans-serif;'>🚫 Ketma-ket 3 marta noto'g'ri kod! Siz BLOKLANDANSIZ!</h1>";
                     return;
                 }
 
                 let userPass = prompt(`Ilovaga kirish kodini kiriting (Qolgan urinishlar: ${3 - attempts}):`);
-                
                 if (!userPass) {
-                    document.body.innerHTML = "<h1 style='color:orange; text-align:center; margin-top:20%'>Kod kiritilmadi. Saytni yangilab qayta urining!</h1>";
+                    document.body.innerHTML = "<div style='text-align:center; margin-top:20%; font-family:sans-serif;'><h1 style='color:orange;'>Kod kiritilmadi</h1><button onclick='location.reload()' style='padding:10px 20px; font-size:18px; cursor:pointer;'>Qayta urunish</button></div>";
                     return;
                 }
 
@@ -325,7 +334,7 @@
                     location.reload();
                 } else if (userPass === MAIN_PASSWORD) {
                     localStorage.setItem('my_saved_auth_code', userPass);
-                    localStorage.setItem('my_saved_auth_tarif', "Cheksiz (Admin ruxsatli)");
+                    localStorage.setItem('my_saved_auth_tarif', "Cheksiz (Asosiy Parol)");
                     localStorage.setItem('login_attempts', "0");
                     alert("Xush kelibsiz!");
                     location.reload();
@@ -340,14 +349,9 @@
                             let c = child.val();
                             if (c.code == userPass) {
                                 if (c.isOneTime) {
-                                    valid = true;
-                                    selectedNode = c;
-                                    nodeKey = child.key;
+                                    valid = true; selectedNode = c; nodeKey = child.key;
                                 } else {
-                                    if (nowMs <= c.expireTimestamp) {
-                                        valid = true;
-                                        selectedNode = c;
-                                    }
+                                    if (nowMs <= c.expireTimestamp) { valid = true; selectedNode = c; }
                                 }
                             }
                         });
@@ -357,10 +361,7 @@
                             localStorage.setItem('my_saved_auth_tarif', selectedNode.tarif);
                             localStorage.setItem('login_attempts', "0");
 
-                            if(selectedNode.isOneTime) {
-                                db.ref(`otp_codes/${nodeKey}`).remove();
-                            }
-
+                            if(selectedNode.isOneTime) { db.ref(`otp_codes/${nodeKey}`).remove(); }
                             alert(`Kod tasdiqlandi! Xush kelibsiz.`);
                             location.reload();
                         } else {
@@ -368,9 +369,9 @@
                             localStorage.setItem('login_attempts', attempts.toString());
                             if(attempts >= 3) {
                                 db.ref('banned_users').push({ ip: userIp, device: userDevice, time: new Date().toLocaleString() });
-                                alert("3 marta xato terildi va siz bloklandingiz!");
+                                alert("Siz bloklandingiz!");
                             } else {
-                                alert(`Kod noto'g'ri yoki muddati tugagan! Qolgan urinishlar: ${3 - attempts}`);
+                                alert(`Kod xato yoki muddati tugagan! Qolgan urinishlar: ${3 - attempts}`);
                             }
                             location.reload();
                         }
@@ -380,14 +381,8 @@
         }
 
         function initUserPresence(code, tarif) {
-            let currentCode = code || localStorage.getItem('my_saved_auth_code') || "Noma'lum";
-            let currentTarif = tarif || localStorage.getItem('my_saved_auth_tarif') || "Oddiy foydalanuvchi";
+            if(!userIp) return; 
             
-            if (localStorage.getItem('my_admin_status') === 'true') {
-                currentCode = "Admin Parol";
-                currentTarif = "To'liq Administrator";
-            }
-
             const myConnectionsRef = db.ref(`online_users/${mySessionId}`);
             const lastOnlineRef = db.ref(`history_users/${mySessionId}`);
             
@@ -395,21 +390,16 @@
                 sessionId: mySessionId,
                 deviceName: userDevice,
                 ip: userIp,
-                tarif: currentTarif,
-                code: currentCode,
+                tarif: tarif,
+                code: code,
                 loginTime: new Date().toLocaleString(),
-                lastActive: firebase.database.ServerValue.TIMESTAMP
+                lastActive: new Date().getTime()
             };
 
             myConnectionsRef.setValue(myData);
             lastOnlineRef.setValue(myData);
             myConnectionsRef.onDisconnect().remove();
         }
-
-        db.ref('online_users').on('value', (snap) => {
-            let count = snap.numChildren();
-            document.getElementById('onlineCounterBtn').innerText = `👀 Xozirda online (${count})`;
-        });
 
         // --- ASOSIY RULETKA LOGIKASI ---
         const canvas = document.getElementById('canvas');
@@ -436,7 +426,6 @@
             const name = document.getElementById('regName').value.trim();
             const surname = document.getElementById('regSurname').value.trim();
             const email = document.getElementById('regEmail').value.trim();
-
             if(!name || !surname || !email) return alert("Barcha maydonlarni to'ldiring!");
 
             const regData = { 
@@ -451,11 +440,10 @@
             });
         }
 
-        // --- ADMIN PANEL FUNKSIYALARI ---
+        // --- ADMIN PANEL — OBUNA VA KOD YARATISH ---
         function openAdminModal() {
             document.getElementById('adminModal').style.display = 'flex';
             filterSubs('all', document.querySelector('.sub-tabs .sub-tab-btn'));
-            loadBannedUsers();
         }
 
         function filterSubs(tarif, element) {
@@ -470,7 +458,7 @@
                         html += `<div class="list-item">
                                     <b>🎁 Tarif: ${u.tarif}</b><br>
                                     👤 Ism: ${u.name} ${u.surname} | 📧 ${u.email}<br>
-                                    📱 ${u.deviceName} <span class="ip-text">🌐 IP: ${u.ip}</span>
+                                    <span class="ip-text">📱 ${u.deviceName} | 🌐 IP: ${u.ip}</span>
                                  </div>`;
                     }
                 });
@@ -480,21 +468,11 @@
 
         function generateVipCode(tarif, days) {
             let code = Math.floor(1000 + Math.random() * 9000);
-            let today = new Date();
-            today.setDate(today.getDate() + days);
-            
+            let today = new Date(); today.setDate(today.getDate() + days);
             let expireString = today.toLocaleString();
             let expireTimestamp = today.getTime();
 
-            let codeData = {
-                code: code,
-                tarif: tarif,
-                expireDate: expireString,
-                expireTimestamp: expireTimestamp,
-                isOneTime: false,
-                createdAt: new Date().toLocaleString()
-            };
-
+            let codeData = { code, tarif, expireDate: expireString, expireTimestamp, isOneTime: false, createdAt: new Date().toLocaleString() };
             db.ref('otp_codes').push(codeData).then(() => {
                 document.getElementById('otpDisplay').innerHTML = `Yaratildi: <span style="color:yellow; font-size:16px;">${code}</span> (Tarif: ${tarif})<br>Muddati: ${expireString} gacha`;
             });
@@ -502,75 +480,40 @@
 
         function generateOneTimeCode() {
             let code = Math.floor(1000 + Math.random() * 9000);
-            let codeData = {
-                code: code,
-                tarif: "1 Martalik Kirish",
-                isOneTime: true,
-                createdAt: new Date().toLocaleString()
-            };
-
+            let codeData = { code, tarif: "1 Martalik Kirish", isOneTime: true, createdAt: new Date().toLocaleString() };
             db.ref('otp_codes').push(codeData).then(() => {
-                document.getElementById('otpDisplay').innerHTML = `🎫 1 Martalik Kod: <span style="color:cyan; font-size:18px;">${code}</span><br><small>(Faqat 1 marta kirishga yaroqli)</small>`;
+                document.getElementById('otpDisplay').innerHTML = `🎫 Kod: <span style="color:cyan; font-size:18px;">${code}</span><br><small>(1 martalik)</small>`;
             });
         }
 
-        function loadBannedUsers() {
-            db.ref('banned_users').on('value', (snap) => {
-                let html = "";
-                snap.forEach(child => {
-                    let b = child.val();
-                    html += `<div class="list-item">
-                                📱 ${b.device} <span class="ip-text">🌐 IP: ${b.ip} (${b.time})</span>
-                                <button class="unban-btn" onclick="unbanUser('${child.key}')">Blokdan chiqarish</button>
-                             </div>`;
-                });
-                document.getElementById('bannedListBlock').innerHTML = html || "Bloklangan qurilmalar yo'q.";
-            });
-        }
-
-        function unbanUser(key) {
-            db.ref(`banned_users/${key}`).remove().then(() => {
-                alert("Foydalanuvchi blokdan chiqarildi!");
-            });
-        }
-
-        // --- BAZANI BUTUNLAY TOZALASH FUNKSIYASI ---
-        function clearFullDatabase() {
-            if(localStorage.getItem('my_admin_status') !== 'true') {
-                return alert("Sizda bu amalni bajarish huquqi yo'q!");
-            }
-
-            let firstConfirm = confirm("⚠️ DIQQAT! Platformadagi barcha rasmlar, musiqalar, foydalanuvchilar ma'lumotlari va yaratilgan VIP kodlar butunlay o'chib ketadi. Rozimisiz?");
-            if(firstConfirm) {
-                let secondConfirm = confirm("🛑 Katta yo'qotish! Qaroringiz qat'iymi? Bu amalni ortga qaytarib bo'lmaydi!");
-                if(secondConfirm) {
-                    status.innerText = "Baza tozalanmoqda...";
-                    
-                    // O'chirilishi kerak bo'lgan barcha tugunlar ro'yxati
-                    let nodesToClear = ['royal_data', 'otp_codes', 'pro_users', 'online_users', 'history_users'];
-                    let promises = nodesToClear.map(node => db.ref(node).remove());
-
-                    Promise.all(promises).then(() => {
-                        alert("Baza muvaffaqiyatli tozalandi! Tizim qayta yuklanadi.");
-                        location.reload();
-                    }).catch((err) => {
-                        alert("Xatolik yuz berdi: " + err.message);
-                        status.innerText = "Sinxronizatsiya xatosi ❌";
-                    });
-                }
-            }
-        }
-
-        // --- ONLINE MONITOR FUNKSIYALARI ---
+        // --- ONLINE MONITOR VA BLOKLASH BO'LIMI ---
         function openOnlineModal() {
             document.getElementById('onlineModal').style.display = 'flex';
-            showOnlineTab1();
+            switchMonitorTab(1);
         }
 
-        function showOnlineTab1() {
-            document.getElementById('onlineTab1Block').style.display = 'block';
+        function switchMonitorTab(tabIndex) {
+            document.querySelectorAll('#onlineModal .sub-tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('onlineTab1Block').style.display = 'none';
             document.getElementById('onlineTab2Block').style.display = 'none';
-            
+            document.getElementById('onlineTab3Block').style.display = 'none';
+
+            if(tabIndex === 1) {
+                document.getElementById('t1').classList.add('active');
+                document.getElementById('onlineTab1Block').style.display = 'block';
+                loadOnlineTab1();
+            } else if(tabIndex === 2) {
+                document.getElementById('t2').classList.add('active');
+                document.getElementById('onlineTab2Block').style.display = 'block';
+                loadOnlineTab2();
+            } else if(tabIndex === 3) {
+                document.getElementById('t3').classList.add('active');
+                document.getElementById('onlineTab3Block').style.display = 'block';
+                loadOnlineTab3();
+            }
+        }
+
+        function loadOnlineTab1() {
             db.ref('online_users').once('value', (snap) => {
                 let html = "";
                 snap.forEach(child => {
@@ -585,16 +528,11 @@
             });
         }
 
-        function showOnlineTab2() {
-            document.getElementById('onlineTab1Block').style.display = 'none';
-            document.getElementById('onlineTab2Block').style.display = 'block';
-            
+        function loadOnlineTab2() {
             db.ref('history_users').once('value', (snap) => {
-                let html = "";
-                let arr = [];
+                let html = ""; let arr = [];
                 snap.forEach(child => { arr.push(child.val()); });
                 arr.reverse(); 
-
                 arr.forEach((o, index) => {
                     html += `<div class="list-item">
                                 <b>#${index + 1} Tarif: ${o.tarif}</b> | Kod: <span style="color:cyan">${o.code}</span><br>
@@ -604,6 +542,78 @@
                 });
                 document.getElementById('onlineTab2Block').innerHTML = html || "Tarix bo'sh.";
             });
+        }
+
+        function loadOnlineTab3() {
+            db.ref('history_users').once('value', (histSnap) => {
+                db.ref('banned_users').once('value', (banSnap) => {
+                    let bannedIps = [];
+                    banSnap.forEach(b => { bannedIps.push(b.val().ip); });
+
+                    let html = "<h4 style='color:gold;margin:5px 0;'>Foydalanuvchilar holati:</h4>";
+                    let count = 0;
+
+                    histSnap.forEach(child => {
+                        let u = child.val();
+                        if(u.code !== "Admin Parol") { 
+                            count++;
+                            let isCurrentlyBanned = bannedIps.includes(u.ip);
+                            
+                            html += `<div class="list-item" style="border-left: 3px solid ${isCurrentlyBanned ? 'red':'lime'}; padding-left:8px;">
+                                        <b>Tarif: ${u.tarif}</b> | Kod: <span style="color:yellow; font-weight:bold;">${u.code}</span><br>
+                                        📱 Qurilma: ${u.deviceName} | 🌐 IP: ${u.ip}<br>
+                                        <small style="color:#aaa">Oxirgi faollik: ${u.loginTime}</small>
+                                        
+                                        ${isCurrentlyBanned ? 
+                                        `<button class="unban-action-btn" onclick="actionUnban('${u.ip}')">🟢 Blokdan ochish</button>` : 
+                                        `<button class="ban-action-btn" onclick="actionBan('${u.ip}','${u.deviceName}')">🚫 Bloklash</button>`}
+                                     </div>`;
+                        }
+                    });
+
+                    if(count === 0) html += "<p>Tizimda boshqa foydalanuvchi topilmadi.</p>";
+                    document.getElementById('onlineTab3Block').innerHTML = html;
+                });
+            });
+        }
+
+        function actionBan(ip, device) {
+            if(confirm("Ushbu qurilmani bloklashni tasdiqlaysizmi?")) {
+                db.ref('banned_users').push({ ip: ip, device: device, time: new Date().toLocaleString() }).then(() => {
+                    alert("Qurilma bloklandi!");
+                    loadOnlineTab3();
+                });
+            }
+        }
+
+        function actionUnban(ip) {
+            db.ref('banned_users').once('value', (snap) => {
+                snap.forEach(child => {
+                    if(child.val().ip === ip) {
+                        db.ref(`banned_users/${child.key}`).remove().then(() => {
+                            alert("Qurilma blokdan ochildi!");
+                            loadOnlineTab3();
+                        });
+                    }
+                });
+            });
+        }
+
+        // --- BAZANI BUTUNLAY TOZALASH ---
+        function clearFullDatabase() {
+            if(localStorage.getItem('my_admin_status') !== 'true') return alert("Huquqingiz yo'q!");
+            if(confirm("⚠️ DIQQAT! Platformadagi barcha rasmlar, musiqalar, foydalanuvchilar va VIP kodlar butunlay o'chib ketadi. Rozimisiz?")) {
+                if(confirm("🛑 Qaroringiz qat'iymi? Bu amalni ortga qaytarib bo'lmaydi!")) {
+                    status.innerText = "Baza tozalanmoqda...";
+                    let nodesToClear = ['royal_data', 'otp_codes', 'pro_users', 'online_users', 'history_users'];
+                    let promises = nodesToClear.map(node => db.ref(node).remove());
+
+                    Promise.all(promises).then(() => {
+                        alert("Baza muvaffaqiyatli tozalandi! Tizim qayta yuklanadi.");
+                        location.reload();
+                    });
+                }
+            }
         }
 
         // --- MULTIMEDIA VA SERVEDAN SINXRONIZATSIYA ---
@@ -616,12 +626,10 @@
         function save(key, val) { if(localStorage.getItem('my_admin_status') === 'true') db.ref('royal_data/' + key).set(val); }
 
         document.getElementById('bgInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result);
-            r.readAsDataURL(e.target.files[0]);
+            const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result); r.readAsDataURL(e.target.files[0]);
         };
         document.getElementById('wheelBgInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('wBg', ev.target.result);
-            r.readAsDataURL(e.target.files[0]);
+            const r = new FileReader(); r.onload = (ev) => save('wBg', ev.target.result); r.readAsDataURL(e.target.files[0]);
         };
         document.getElementById('fileInput').onchange = (e) => {
             const files = Array.from(e.target.files); const urls = [];
@@ -632,16 +640,13 @@
             });
         };
         document.getElementById('spinAudioInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('spinAudio', ev.target.result);
-            r.readAsDataURL(e.target.files[0]);
+            const r = new FileReader(); r.onload = (ev) => save('spinAudio', ev.target.result); r.readAsDataURL(e.target.files[0]);
         };
         document.getElementById('winAudioInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('winAudio', ev.target.result);
-            r.readAsDataURL(e.target.files[0]);
+            const r = new FileReader(); r.onload = (ev) => save('winAudio', ev.target.result); r.readAsDataURL(e.target.files[0]);
         };
         document.getElementById('bgAudioInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('bgAudio', ev.target.result);
-            r.readAsDataURL(e.target.files[0]);
+            const r = new FileReader(); r.onload = (ev) => save('bgAudio', ev.target.result); r.readAsDataURL(e.target.files[0]);
         };
 
         function loadFromServer() {
@@ -649,14 +654,8 @@
             db.ref('royal_data').on('value', (snap) => {
                 const data = snap.val(); 
                 if(!data) {
-                    // Agar baza bo'sh bo'lsa, ruletkani boshlang'ich holatga keltiramiz
-                    document.body.style.backgroundImage = "none";
-                    wheelBgImage = null;
-                    images = [];
-                    spinBtn.disabled = true;
-                    draw();
-                    status.innerText = "Baza bo'sh ⚠️ Fayllarni yuklang";
-                    return;
+                    document.body.style.backgroundImage = "none"; wheelBgImage = null; images = []; spinBtn.disabled = true; draw();
+                    status.innerText = "Baza bo'sh ⚠️ Fayllarni yuklang"; return;
                 }
                 if(data.bg) document.body.style.backgroundImage = `url(${data.bg})`;
                 if(data.wBg) { const img = new Image(); img.onload = () => { wheelBgImage = img; draw(); }; img.src = data.wBg; }
