@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serverli Royal Roulette PRO v2</title>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --gold: linear-gradient(145deg, #bf953f, #fcf6ba, #b38728, #fbf5b7, #aa771c);
+            --gold-solid: #b38728;
+        }
+        body { 
+            font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; color: #fcf6ba; background: #050505 center/cover no-repeat;
+            transition: background 0.5s ease;
+        }
+
+        #menu-btn { position: absolute; top: 20px; right: 20px; font-size: 35px; cursor: pointer; color: #bf953f; z-index: 100; }
+        
+        #side-panel {
+            position: fixed; top: 0; right: -320px; width: 280px; height: 100%;
+            background: rgba(15, 15, 15, 0.98); border-left: 2px solid #bf953f;
+            transition: 0.4s; z-index: 99; padding: 30px 15px;
+            display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
+        }
+        #side-panel.open { right: 0; }
+
+        .tab-btn { background: var(--gold); color: #000; border: none; padding: 10px; font-weight: bold; border-radius: 8px; cursor: pointer; text-transform: uppercase; font-size: 12px; }
+        .settings-section { display: none; flex-direction: column; gap: 8px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 1px dashed gold; }
+        .settings-section.active { display: flex; }
+
+        #canvas-wrapper {
+            position: relative; padding: 12px; background: var(--gold); border-radius: 50%;
+            box-shadow: 0 0 60px rgba(184, 134, 11, 0.4); border: 6px solid #8a6d3b;
+        }
+        canvas { background: #400000; border-radius: 50%; display: block; max-width: 85vw; height: auto; }
+
+        #spinBtn {
+            margin-top: 20px; background: var(--gold); color: #111; border: none;
+            padding: 16px 50px; font-size: 20px; font-weight: bold; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+        #spinBtn:disabled { opacity: 0.3; }
+
+        /* MODAL OYNALAR */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: none; justify-content: center;
+            align-items: center; z-index: 200; padding: 15px;
+        }
+        .modal-content {
+            background: #111; border: 2px solid gold; border-radius: 15px;
+            padding: 25px; width: 100%; max-width: 420px; box-shadow: 0 0 30px gold; color: white;
+        }
+        .modal-content h3 { color: gold; margin-top: 0; text-align: center; text-transform: uppercase; }
+        .modal-content input {
+            width: 100%; padding: 10px; margin-bottom: 12px; background: #222;
+            border: 1px solid gold; border-radius: 6px; color: white; box-sizing: border-box;
+        }
+        
+        .list-container {
+            max-height: 220px; overflow-y: auto; background: #000;
+            border: 1px solid gold; padding: 8px; font-size: 12px; border-radius: 5px; margin-bottom: 10px;
+        }
+        .list-item { padding: 8px; border-bottom: 1px solid #222; color: #fff; line-height: 1.4; }
+        .ip-text { font-size: 10px; color: #aaa; display: block; }
+        
+        /* Live qizil nuqta */
+        .live-dot {
+            width: 8px; height: 8px; background-color: #ff0000; border-radius: 50%;
+            display: inline-block; margin-right: 5px;
+            animation: blink 1s infinite alternate;
+        }
+        @keyframes blink {
+            from { opacity: 0.2; box-shadow: 0 0 0px #ff0000; }
+            to { opacity: 1; box-shadow: 0 0 8px #ff0000; }
+        }
+
+        #winner-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); display: none; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 200;
+        }
+        #winner-img { max-width: 85%; max-height: 65%; border: 5px solid gold; border-radius: 20px; }
+        .signature { position: fixed; bottom: 10px; font-size: 13px; background: var(--gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        
+        .tarif-grid { display: flex; flex-direction: column; gap: 8px; }
+        .tarif-card { background: rgba(255,215,0,0.1); border: 1px solid gold; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; font-weight: bold; transition: 0.2s; font-size: 11px; }
+        .tarif-card:hover { background: var(--gold); color: black; }
+        
+        .sub-tabs { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; padding-bottom: 5px; }
+        .sub-tab-btn { background: #222; color: gold; border: 1px solid gold; padding: 5px 8px; font-size: 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+        .sub-tab-btn.active { background: var(--gold); color: black; }
+    </style>
+</head>
+<body>
+
+    <div id="menu-btn" onclick="toggleMenu()">⋮</div>
+
+    <div id="side-panel">
+        <h2 style="color: gold; text-align: center; margin-top:0;">MENU</h2>
+        
+        <button id="mscToggleBtn" class="tab-btn" style="background: #27ae60; color: white;" onclick="toggleMsc()">🎵 Musiqani o'chirish</button>
+        
+        <button class="tab-btn" style="background: #8e44ad; color: white;" onclick="document.getElementById('pro-sec').classList.toggle('active')">💎 Pro Versiyaga o'tish</button>
+        <div id="pro-sec" class="settings-section">
+            <div class="tarif-grid">
+                <div class="tarif-card" onclick="openRegModal('10$ / 1 oy')">🥈 10$ / 1 OY</div>
+                <div class="tarif-card" onclick="openRegModal('20$ / 3 oy')">🥉 20$ / 3 OY</div>
+                <div class="tarif-card" onclick="openRegModal('40$ / 6 oy')">🥇 40$ / 6 OY</div>
+                <div class="tarif-card" onclick="openRegModal('60$ / 1 yil')">👑 60$ / 1 YIL</div>
+                <div class="tarif-card" onclick="openRegModal('100$ / cheksiz')">💎 100$ / CHEKSIZ</div>
+            </div>
+        </div>
+
+        <button class="tab-btn" style="background:#7f8c8d; color:white;" onclick="resetGame()">🔄 Yangi O'yin</button>
+
+        <div id="adminMenuBlock" style="display: none; flex-direction: column; gap: 12px; width: 100%;">
+            <hr border="1" color="gold" style="width:100%;">
+            <button class="tab-btn" style="background:#d35400; color:white;" onclick="document.getElementById('set-sec').classList.toggle('active')">⚙️ Sozlamalar (Admin)</button>
+            <div id="set-sec" class="settings-section">
+                <label>1) Ekran foni:</label><input type="file" id="bgInput">
+                <label>2) Baraban foni:</label><input type="file" id="wheelBgInput">
+                <label>3) Ruletka Rasmlari:</label><input type="file" id="fileInput" multiple>
+                <label>4) Aylanish ovozi:</label><input type="file" id="spinAudioInput" accept="audio/*">
+                <label>5) Yutgan ovoz:</label><input type="file" id="winAudioInput" accept="audio/*">
+                <label>6) Fon musiqasi:</label><input type="file" id="bgAudioInput" accept="audio/*">
+            </div>
+            
+            <button class="tab-btn" style="background:#2980b9; color:white;" onclick="openAdminModal()">🔑 ALOHIDA ADMIN OYNASI</button>
+            
+            <button id="onlineCounterBtn" class="tab-btn" style="background:#c0392b; color:white;" onclick="openOnlineModal()">👀 Xozirda online (0)</button>
+        </div>
+        
+        <hr border="1" color="gold" style="width:100%;">
+        <button class="tab-btn" style="background:#444; color:white;" onclick="adminDirectLogin()">🛡️ Admin Kirish</button>
+        
+        <p id="status" style="font-size:11px; color:lime; text-align:center; margin:5px 0;"></p>
+    </div>
+
+    <h1>Royal Roulette</h1>
+
+    <div id="canvas-wrapper">
+        <canvas id="canvas" width="500" height="500"></canvas>
+    </div>
+
+    <button id="spinBtn" disabled>Aylantirish</button>
+
+    <div id="regModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="selectedTarifTitle">Ro'yxatdan o'tish</h3>
+            <input type="text" id="regName" placeholder="Ism">
+            <input type="text" id="regSurname" placeholder="Familiya">
+            <input type="email" id="regEmail" placeholder="Elektron pochta (Email)">
+            <button class="tab-btn" style="width:100%; margin-bottom:8px;" onclick="saveRegistration()">Obunani Rasmiylashtirish</button>
+            <button class="tab-btn" style="width:100%; background:#c0392b; color:white;" onclick="closeModal('regModal')">Yopish</button>
+        </div>
+    </div>
+
+    <div id="adminModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 480px;">
+            <h3>Admin Boshqaruv Paneli</h3>
+            
+            <h4 style="color:gold; margin: 10px 0 5px 0;">💰 Obuna sotib olganlar:</h4>
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" onclick="filterSubs('all', this)">Barchasi</button>
+                <button class="sub-tab-btn" onclick="filterSubs('10$ / 1 oy', this)">10$</button>
+                <button class="sub-tab-btn" onclick="filterSubs('20$ / 3 oy', this)">20$</button>
+                <button class="sub-tab-btn" onclick="filterSubs('40$ / 6 oy', this)">40$</button>
+                <button class="sub-tab-btn" onclick="filterSubs('60$ / 1 yil', this)">60$</button>
+                <button class="sub-tab-btn" onclick="filterSubs('100$ / cheksiz', this)">100$</button>
+            </div>
+            <div id="subscribersListBlock" class="list-container"></div>
+
+            <h4 style="color:gold; margin: 10px 0 5px 0;">💎 VIP Generatsiya (KOD YARATISH):</h4>
+            <div class="sub-tabs" style="flex-wrap: wrap;">
+                <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('10$ / 1 oy', 30)">10$ (1oy)</button>
+                <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('20$ / 3 oy', 90)">20$ (3oy)</button>
+                <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('40$ / 6 oy', 180)">40$ (6oy)</button>
+                <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('60$ / 1 yil', 365)">60$ (1yil)</button>
+                <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('100$ / cheksiz', 99999)">100$ (∞)</button>
+            </div>
+            <div id="otpDisplay" style="text-align:center; font-size:16px; font-weight:bold; color:lime; margin: 5px 0;"></div>
+
+            <button class="tab-btn" style="width:100%; background:#c0392b; color:white; margin-top:10px;" onclick="closeModal('adminModal')">Yopish</button>
+        </div>
+    </div>
+
+    <div id="onlineModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3>Onlayn Monitor</h3>
+            
+            <button class="tab-btn" style="width:100%; margin-bottom:8px; background:#2980b9; color:white;" onclick="showOnlineTab1()">1-TUGMA: Xozirda Faol (Online)</button>
+            <div id="onlineTab1Block" class="list-container"></div>
+
+            <button class="tab-btn" style="width:100%; margin-bottom:8px; background:#27ae60; color:white;" onclick="showOnlineTab2()">2-TUGMA: Oxirgi 1 oylik tarix</button>
+            <div id="onlineTab2Block" class="list-container" style="display:none;"></div>
+
+            <button class="tab-btn" style="width:100%; background:#c0392b; color:white;" onclick="closeModal('onlineModal')">Yopish</button>
+        </div>
+    </div>
+
+    <div id="winner-overlay" onclick="this.style.display='none'">
+        <h1 style="color:gold">G'OLIB!</h1>
+        <img id="winner-img" src="">
+        <p style="color:white">Yopish uchun bosing</p>
+    </div>
+
+    <div class="signature">🌺 Yusufaliyev 🌺</div>
+
+    <audio id="bgMsc" loop></audio>
+    <audio id="spinSnd"></audio>
+    <audio id="winSnd"></audio>
+
+    <script>
+        // --- ASOSIY SOZLAMALAR ---
+        const MAIN_PASSWORD = "123";
+        const ADMIN_FIXED_PASSWORD = "7777";
+        let mySessionId = "user_" + Math.floor(Math.random() * 1000000);
+        let userIp = "Aniqlanmoqda...";
+        let userDevice = "Noma'lum Qurilma";
+        let usedCodeGlobal = "Noma'lum";
+        let userTarifGlobal = "Tekshirilmoqda...";
+
+        // Firebase konfiguratsiyasi
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcHL_lCA4kYWDxKW1uAia3Nm5Kgb3pdwM",
+            authDomain: "yusufaliyev-db792.firebaseapp.com",
+            databaseURL: "https://yusufaliyev-db792-default-rtdb.firebaseio.com",
+            projectId: "yusufaliyev-db792",
+            storageBucket: "yusufaliyev-db792.appspot.com",
+            messagingSenderId: "530423783273",
+            appId: "1:530423783273:web:8d06265e9558dd8c55a7f8"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Qurilma turi va IP ni aniqlash
+        function detectDevice() {
+            const ua = navigator.userAgent;
+            if (/android/i.test(ua)) return "Android Qurilma";
+            if (/iPhone|iPad/i.test(ua)) return "iOS Qurilma";
+            if (/Windows/i.test(ua)) return "Windows PC";
+            if (/Macintosh/i.test(ua)) return "Mac PC";
+            return "Mobil/Brauzer";
+        }
+        userDevice = detectDevice();
+
+        fetch('https://api.ipify.org?format=json')
+            .then(res => res.json())
+            .then(data => { userIp = data.ip; })
+            .catch(() => { userIp = "Yashirin IP"; });
+
+        // --- KIRISH HUQUQI VA TARIF MUDDATI TEKSHIRUVI ---
+        let access = sessionStorage.getItem('access_granted');
+        let isAdminLoggedIn = sessionStorage.getItem('admin_logged') === 'true';
+
+        if (access !== 'true' && !isAdminLoggedIn) {
+            let userPass = prompt("Ilovaga va tarifga kirish uchun parolni kiriting:");
+            if (userPass === MAIN_PASSWORD) {
+                sessionStorage.setItem('access_granted', 'true');
+                usedCodeGlobal = "Asosiy parol (123)";
+                userTarifGlobal = "Cheksiz (Admin ruxsatli)";
+                initUserPresence();
+                alert("Xush kelibsiz!");
+            } else if (userPass === ADMIN_FIXED_PASSWORD) {
+                sessionStorage.setItem('admin_logged', 'true');
+                isAdminLoggedIn = true;
+                usedCodeGlobal = "Admin Parol (7777)";
+                userTarifGlobal = "To'liq Administrator";
+                alert("Admin sifatida tizimga kirdingiz!");
+                location.reload();
+            } else {
+                // VIP / Tarif kodlarini tekshirish
+                db.ref('otp_codes').once('value', (snap) => {
+                    let valid = false;
+                    let selectedNode = null;
+                    let now = new Date().getTime();
+
+                    snap.forEach(child => {
+                        let c = child.val();
+                        if (c.code == userPass) {
+                            let expireTime = new Date(c.expireDate).getTime();
+                            if (now <= expireTime) {
+                                valid = true;
+                                selectedNode = c;
+                            }
+                        }
+                    });
+
+                    if (valid) {
+                        sessionStorage.setItem('access_granted', 'true');
+                        usedCodeGlobal = userPass;
+                        userTarifGlobal = selectedNode.tarif;
+                        initUserPresence();
+                        alert(`Kod tasdiqlandi! Tarifingiz: ${selectedNode.tarif}. Amal qilish muddati: ${selectedNode.expireDate}`);
+                        location.reload();
+                    } else {
+                        alert("Parol noto'g'ri, yoki tarif muddati tugagan (kalendar bo'yicha)!");
+                        document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%'>Kirish taqiqlangan yoki Tarif muddati tugagan!</h1>";
+                        throw new Error("Wrong Password");
+                    }
+                });
+            }
+        } else {
+            initUserPresence();
+        }
+
+        // Admin interfeysini yoqish
+        if (isAdminLoggedIn) {
+            document.getElementById('adminMenuBlock').style.display = 'flex';
+        }
+
+        // --- LIVE (ONLINE PRESENCE) TIZIMI ---
+        function initUserPresence() {
+            setTimeout(() => {
+                const myConnectionsRef = db.ref(`online_users/${mySessionId}`);
+                const lastOnlineRef = db.ref(`history_users/${mySessionId}`);
+                
+                const myData = {
+                    sessionId: mySessionId,
+                    deviceName: userDevice,
+                    ip: userIp,
+                    tarif: userTarifGlobal,
+                    code: usedCodeGlobal,
+                    loginTime: new Date().toLocaleString(),
+                    lastActive: firebase.database.ServerValue.TIMESTAMP
+                };
+
+                myConnectionsRef.setValue(myData);
+                lastOnlineRef.setValue(myData);
+                myConnectionsRef.onDisconnect().remove();
+            }, 2000);
+        }
+
+        // Onlayn taymer va hisoblagich
+        db.ref('online_users').on('value', (snap) => {
+            let count = snap.numChildren();
+            document.getElementById('onlineCounterBtn').innerText = `👀 Xozirda online (${count})`;
+        });
+
+
+        // --- ASOSIY RULETKA LOGIKASI ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const status = document.getElementById('status');
+        const bgMsc = document.getElementById('bgMsc');
+        const spinSnd = document.getElementById('spinSnd');
+        const winSnd = document.getElementById('winSnd');
+        
+        let images = [], wheelBgImage = null, rotation = 0, isSpinning = false;
+        const cw = 500, cx = 250, outerR = 240, innerR = 195, imgSlotR = 215, ballTrackR = 175;
+        let ball = { angle: 0, speed: 0, r: ballTrackR };
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function toggleMenu() { document.getElementById('side-panel').classList.toggle('open'); }
+
+        // --- TARIF REGISTRATSIYA ---
+        function openRegModal(tarif) {
+            document.getElementById('selectedTarifTitle').innerText = "Tarif: " + tarif;
+            document.getElementById('regModal').style.display = 'flex';
+        }
+
+        function saveRegistration() {
+            const name = document.getElementById('regName').value.trim();
+            const surname = document.getElementById('regSurname').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+
+            if(!name || !surname || !email) return alert("Barcha maydonlarni to'ldiring!");
+
+            const regData = { 
+                name, surname, email, 
+                tarif: document.getElementById('selectedTarifTitle').innerText.replace("Tarif: ", ""), 
+                deviceName: userDevice, ip: userIp, time: new Date().toLocaleString() 
+            };
+            
+            db.ref('pro_users').push(regData).then(() => {
+                alert("Siz muvaffaqiyatli ro'yxatdan o'tdingiz! Admin kodni tasdiqlagach, ruxsat olasiz.");
+                closeModal('regModal');
+            });
+        }
+
+        // --- ADMIN PANEL FUNKSIYALARI ---
+        function adminDirectLogin() {
+            let p = prompt("Yagona doimiy Admin parolini kiriting:");
+            if(p === ADMIN_FIXED_PASSWORD) {
+                sessionStorage.setItem('admin_logged', 'true');
+                alert("Muvaffaqiyatli kirdingiz!");
+                location.reload();
+            } else {
+                alert("Xato parol!");
+            }
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').style.display = 'flex';
+            filterSubs('all', document.querySelector('.sub-tabs .sub-tab-btn'));
+        }
+
+        function filterSubs(tarif, element) {
+            document.querySelectorAll('.sub-tabs .sub-tab-btn').forEach(b => b.classList.remove('active'));
+            if(element) element.classList.add('active');
+
+            db.ref('pro_users').once('value', (snap) => {
+                let html = "";
+                snap.forEach(child => {
+                    let u = child.val();
+                    if(tarif === 'all' || u.tarif === tarif) {
+                        html += `<div class="list-item">
+                                    <b>🎁 Tarif: ${u.tarif}</b><br>
+                                    👤 Ism: ${u.name} ${u.surname} | 📧 ${u.email}<br>
+                                    📱 ${u.deviceName} <span class="ip-text">🌐 IP: ${u.ip}</span>
+                                 </div>`;
+                    }
+                });
+                document.getElementById('subscribersListBlock').innerHTML = html || "Bu tarifda hozircha obunachi yo'q.";
+            });
+        }
+
+        // VIP 4 xonali kod generatsiya qilish (Kalendar bo'yicha muddatli)
+        function generateVipCode(tarif, days) {
+            let code = Math.floor(1000 + Math.random() * 9000);
+            let today = new Date();
+            today.setDate(today.getDate() + days);
+            let expireString = today.toLocaleString();
+
+            let codeData = {
+                code: code,
+                tarif: tarif,
+                expireDate: expireString,
+                createdAt: new Date().toLocaleString()
+            };
+
+            db.ref('otp_codes').push(codeData).then(() => {
+                document.getElementById('otpDisplay').innerHTML = `Yaratildi: <span style="color:yellow">${code}</span><br>Muddati: ${expireString} gacha`;
+            });
+        }
+
+        // --- ONLINE MONITOR FUNKSIYALARI ---
+        function openOnlineModal() {
+            document.getElementById('onlineModal').style.display = 'flex';
+            showOnlineTab1();
+        }
+
+        function showOnlineTab1() {
+            document.getElementById('onlineTab1Block').style.display = 'block';
+            document.getElementById('onlineTab2Block').style.style = 'none';
+            
+            db.ref('online_users').once('value', (snap) => {
+                let html = "";
+                snap.forEach(child => {
+                    let o = child.val();
+                    html += `<div class="list-item">
+                                <span class="live-dot"></span> <b>Tarif: ${o.tarif}</b><br>
+                                📱 Qurilma: ${o.deviceName} <br>
+                                <span class="ip-text">🌐 IP-Manzil: ${o.ip} (Kod: ${o.code})</span>
+                             </div>`;
+                });
+                document.getElementById('onlineTab1Block').innerHTML = html || "Faol foydalanuvchilar yo'q.";
+            });
+        }
+
+        function showOnlineTab2() {
+            document.getElementById('onlineTab1Block').style.display = 'none';
+            document.getElementById('onlineTab2Block').style.display = 'block';
+            
+            db.ref('history_users').once('value', (snap) => {
+                let html = "";
+                let arr = [];
+                snap.forEach(child => { arr.push(child.val()); });
+                
+                // Oxirgi kirgan paytiga qarab teskari tartibda saralash
+                arr.reverse();
+
+                arr.forEach((o, index) => {
+                    html += `<div class="list-item">
+                                <b>#${index + 1} Tarif: ${o.tarif}</b> | Terilgan Kod: <span style="color:cyan">${o.code}</span><br>
+                                📱 Qurilma: ${o.deviceName} <span class="ip-text">🌐 IP: ${o.ip}</span>
+                                <small style="color:orange">Kirgan vaqti: ${o.loginTime}</small>
+                             </div>`;
+                });
+                document.getElementById('onlineTab2Block').innerHTML = html || "Tarix bo'sh.";
+            });
+        }
+
+        // --- MULTIMEDIA VA SEVERDAN YUKLASH (KIM KIRSA HAM KO'RINADI) ---
+        function toggleMsc() {
+            const btn = document.getElementById('mscToggleBtn');
+            if(bgMsc.paused) { bgMsc.play().catch(()=>{}); btn.innerText = "🎵 Musiqani o'chirish"; btn.style.background = "#27ae60"; }
+            else { bgMsc.pause(); btn.innerText = "🔇 Musiqani yoqish"; btn.style.background = "#c0392b"; }
+        }
+
+        function save(key, val) { if(isAdminLoggedIn) db.ref('royal_data/' + key).set(val); }
+
+        document.getElementById('bgInput').onchange = (e) => {
+            const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result);
+            r.readAsDataURL(e.target.files[0]);
+        };
+        document.getElementById('wheelBgInput').onchange = (e) => {
+            const r = new FileReader(); r.onload = (ev) => save('wBg', ev.target.result);
+            r.readAsDataURL(e.target.files[0]);
+        };
+        document.getElementById('fileInput').onchange = (e) => {
+            const files = Array.from(e.target.files); const urls = [];
+            files.forEach(f => {
+                const r = new FileReader();
+                r.onload = (ev) => { urls.push(ev.target.result); if(urls.length === files.length) save('imgs', urls); };
+                r.readAsDataURL(f);
+            });
+        };
+        document.getElementById('spinAudioInput').onchange = (e) => {
+            const r = new FileReader(); r.onload = (ev) => save('spinAudio', ev.target.result);
+            r.readAsDataURL(e.target.files[0]);
+        };
+        document.getElementById('winAudioInput').onchange = (e) => {
+            const r = new FileReader(); r.onload = (ev) => save('winAudio', ev.target.result);
+            r.readAsDataURL(e.target.files[0]);
+        };
+        document.getElementById('bgAudioInput').onchange = (e) => {
+            const r = new FileReader(); r.onload = (ev) => save('bgAudio', ev.target.result);
+            r.readAsDataURL(e.target.files[0]);
+        };
+
+        function loadFromServer() {
+            status.innerText = "Server yuklanmoqda...";
+            db.ref('royal_data').on('value', (snap) => {
+                const data = snap.val(); if(!data) return;
+                if(data.bg) document.body.style.backgroundImage = `url(${data.bg})`;
+                if(data.wBg) { const img = new Image(); img.onload = () => { wheelBgImage = img; draw(); }; img.src = data.wBg; }
+                if(data.imgs) {
+                    images = [];
+                    data.imgs.forEach((url) => {
+                        const img = new Image(); img.onload = () => { images.push(img); if(images.length === data.imgs.length) { spinBtn.disabled = false; draw(); } };
+                        img.src = url;
+                    });
+                }
+                if(data.spinAudio) spinSnd.src = data.spinAudio;
+                if(data.winAudio) winSnd.src = data.winAudio;
+                if(data.bgAudio && bgMsc.src !== data.bgAudio) {
+                    bgMsc.src = data.bgAudio; bgMsc.volume = 0.4;
+                    bgMsc.play().catch(() => console.log("Musiqa chalinishi foydalanuvchi harakatini kutmoqda..."));
+                }
+                status.innerText = "Server Sinxronlandi ✅";
+            });
+        }
+
+        // --- CHIZISH VA ANIMATSIYA ---
+        function draw() {
+            ctx.clearRect(0,0,cw,cw);
+            ctx.beginPath(); ctx.arc(cx, cx, outerR, 0, Math.PI*2); ctx.fillStyle = '#b38728'; ctx.fill();
+            ctx.save(); ctx.beginPath(); ctx.arc(cx, cx, innerR, 0, Math.PI*2); ctx.clip();
+            if(wheelBgImage) ctx.drawImage(wheelBgImage, cx-innerR, cx-innerR, innerR*2, innerR*2);
+            else { ctx.fillStyle = '#400000'; ctx.fill(); }
+            ctx.restore();
+
+            if(images.length > 0) {
+                const n = images.length, arc = (Math.PI*2)/n;
+                images.forEach((img, i) => {
+                    ctx.save(); ctx.translate(cx, cx); ctx.rotate(rotation + i*arc + arc/2);
+                    ctx.beginPath(); ctx.arc(0, -imgSlotR, 35, 0, Math.PI*2); ctx.clip();
+                    ctx.drawImage(img, -35, -imgSlotR-35, 70, 70); ctx.restore();
+                });
+            }
+            ctx.save(); ctx.translate(cx,cx); ctx.rotate(ball.angle);
+            ctx.beginPath(); ctx.arc(ball.r, 0, 11, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.shadowBlur = 10; ctx.shadowColor = "#fff"; ctx.fill();
+            ctx.restore();
+        }
+
+        function resetGame() { rotation = 0; ball.angle = 0; ball.speed = 0; draw(); }
+
+        spinBtn.onclick = () => {
+            if(isSpinning) return; isSpinning = true;
+            if(spinSnd.src) { spinSnd.currentTime = 0; spinSnd.play().catch(()=>{}); }
+            let wSpd = Math.random()*0.1 + 0.35; ball.speed = -(wSpd*1.5 + Math.random()*0.1); ball.r = ballTrackR;
+            function anim() {
+                rotation += wSpd; wSpd *= 0.988; ball.angle += ball.speed; ball.speed *= 0.991;
+                if(Math.abs(ball.speed) < 0.06 && ball.r > innerR-25) ball.r -= 0.6;
+                draw();
+                if(wSpd > 0.001 || Math.abs(ball.speed) > 0.005) requestAnimationFrame(anim);
+                else {
+                    isSpinning = false; if(winSnd.src) { winSnd.currentTime = 0; winSnd.play().catch(()=>{}); }
+                    const n = images.length;
+                    let b = (ball.angle % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+                    let w = (rotation % (Math.PI*2) + Math.PI*2) % (Math.PI*2);
+                    let diff = (Math.PI*2 - b + (w + Math.PI/2)) % (Math.PI*2);
+                    let idx = Math.floor(diff / (Math.PI*2/n)) % n;
+                    document.getElementById('winner-img').src = images[idx].src;
+                    document.getElementById('winner-overlay').style.display = 'flex';
+                }
+            }
+            anim();
+        };
+
+        window.onload = loadFromServer;
+    </script>
+</body>
+</html>
