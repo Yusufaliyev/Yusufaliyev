@@ -125,11 +125,11 @@
         <button class="tab-btn" style="background: #8e44ad; color: white;" onclick="document.getElementById('pro-sec').classList.toggle('active')">💎 Pro Versiyaga o'tish</button>
         <div id="pro-sec" class="settings-section">
             <div class="tarif-grid">
-                <div class="tarif-card" onclick="openRegModal('10$ / 1 oy')">🥈 10$ / 1 OY</div>
-                <div class="tarif-card" onclick="openRegModal('20$ / 3 oy')">🥉 20$ / 3 OY</div>
-                <div class="tarif-card" onclick="openRegModal('40$ / 6 oy')">🥇 40$ / 6 OY</div>
-                <div class="tarif-card" onclick="openRegModal('60$ / 1 yil')">👑 60$ / 1 YIL</div>
-                <div class="tarif-card" onclick="openRegModal('100$ / cheksiz')">💎 100$ / CHEKSIZ</div>
+                <div class="tarif-card" onclick="initiatexRocketPayment('10$ / 1 oy', 10)">🥈 10$ / 1 OY</div>
+                <div class="tarif-card" onclick="initiatexRocketPayment('20$ / 3 oy', 20)">🥉 20$ / 3 OY</div>
+                <div class="tarif-card" onclick="initiatexRocketPayment('40$ / 6 oy', 40)">🥇 40$ / 6 OY</div>
+                <div class="tarif-card" onclick="initiatexRocketPayment('60$ / 1 yil', 60)">👑 60$ / 1 YIL</div>
+                <div class="tarif-card" onclick="initiatexRocketPayment('100$ / cheksiz', 100)">💎 100$ / CHEKSIZ</div>
             </div>
         </div>
 
@@ -180,6 +180,9 @@
             <h3>Admin Boshqaruv Paneli</h3>
             
             <h4 style="color:gold; margin: 5px 0;">💎 KOD GENERATSIYA TIZIMI:</h4>
+            <div style="margin-bottom: 10px;">
+                <input type="number" id="adminCustomTgId" placeholder="Mijoz Telegram ID (ixtiyoriy)" style="width:100%; padding:8px; background:#222; border:1px solid gold; color:white; border-radius:5px;">
+            </div>
             <div class="sub-tabs" style="flex-wrap: wrap;">
                 <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('10$ / 1 oy', 30)">10$ (1oy)</button>
                 <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('20$ / 3 oy', 90)">20$ (3oy)</button>
@@ -197,7 +200,7 @@
                     <thead>
                         <tr>
                             <th>Foydalanuvchi</th>
-                            <th>Email</th>
+                            <th>Telegram ID</th>
                             <th>Tarif</th>
                             <th>IP / Qurilma</th>
                             <th>Boshqaruv</th>
@@ -240,8 +243,8 @@
     <audio id="winSnd"></audio>
 
     <script>
-        // 🌐 Backend server manzili (Termux porti)
-        const BACKEND_URL = "http://localhost:3000";
+        // 🌐 Backend server manzili (Termux Serveo global havolasi o'rnatildi)
+        const BACKEND_URL = "https://e48c766bb7ccfe95-84-54-86-139.serveousercontent.com";
 
         if(!localStorage.getItem('my_unique_session_id')) {
             localStorage.setItem('my_unique_session_id', "user_" + Math.floor(Math.random() * 1000000));
@@ -284,6 +287,7 @@
             startAccessVerification();
         };
 
+        // --- 1. INTEGRATSIYA: KIRISH FILTRI TIZIMI (7777 VA OTP) ---
         async function startAccessVerification() {
             let sessionCode = sessionStorage.getItem('session_auth_code');
             let isAdmin = sessionStorage.getItem('session_admin_status') === 'true';
@@ -306,7 +310,14 @@
                     return;
                 }
 
-                // 📡 TERMUX BACKEND SERVERGA SO'ROV YUBORISH
+                if (userPass === "7777") {
+                    localStorage.setItem('login_attempts', "0");
+                    sessionStorage.setItem('session_admin_status', 'true');
+                    alert("Xush kelibsiz, Admin!");
+                    location.reload();
+                    return;
+                }
+
                 try {
                     const response = await fetch(`${BACKEND_URL}/api/verify-code`, {
                         method: 'POST',
@@ -318,12 +329,8 @@
 
                     if (response.status === 200 && resData.status === "success") {
                         localStorage.setItem('login_attempts', "0");
-                        if (resData.role === "admin") {
-                            sessionStorage.setItem('session_admin_status', 'true');
-                        } else {
-                            sessionStorage.setItem('session_auth_code', userPass);
-                            sessionStorage.setItem('session_auth_tarif', resData.tarif);
-                        }
+                        sessionStorage.setItem('session_auth_code', userPass);
+                        sessionStorage.setItem('session_auth_tarif', resData.tarif);
                         alert(`Muvaffaqiyatli kirildi! Tarif: ${resData.tarif}`);
                         location.reload();
                     } else if (response.status === 403) {
@@ -341,6 +348,42 @@
             }
         }
 
+        // --- 2. INTEGRATSIYA: XROCKET AUTOMATED TO'LOV TIZIMI ---
+        async function initiatexRocketPayment(tarifName, amount) {
+            let userTgId = prompt("Kodni avtomatik tarzda Telegram botdan qabul qilish uchun Telegram ID raqamingizni kiriting:\n(ID raqamingizni @userinfobot orqali bilib olishingiz mumkin)");
+            
+            if(!userTgId || isNaN(userTgId)) {
+                alert("Xato: To'g'ri Telegram ID raqami kiritilmadi!");
+                return;
+            }
+
+            document.getElementById('status').innerText = "⏳ To'lov havolasi yaratilmoqda...";
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/create-invoice`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tarifName: tarifName,
+                        amount: amount,
+                        telegramId: userTgId.trim()
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.paymentUrl) {
+                    document.getElementById('status').innerText = "✅ Sahifaga o'tilmoqda...";
+                    window.location.href = data.paymentUrl;
+                } else {
+                    alert("Invoys yaratishda xatolik yuz berdi. Backend tekshiring.");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Server bilan aloqa o'rnatib bo'lmadi! Backend va Serveo yoqilganligiga ishonch hosil qiling.");
+            }
+        }
+
         // --- ADMIN PANELI FUNKSIYALARI ---
         function openAdminModal() {
             document.getElementById('adminModal').style.display = 'flex';
@@ -348,6 +391,7 @@
             loadActiveCodes();
         }
 
+        // --- 3. INTEGRATSIYA: BAZALARGA TELEGRAM ID USTUNLARINI QO'SHISH ---
         function loadMainUserTable() {
             db.ref('pro_users').once('value', (proSnap) => {
                 db.ref('history_users').once('value', (histSnap) => {
@@ -360,18 +404,19 @@
 
                         proSnap.forEach(child => {
                             let p = child.val();
-                            if(p.ip) {
-                                displayedIps.add(p.ip);
-                                let isBanned = bannedIps.includes(p.ip);
+                            if(p.ip || p.telegramId) {
+                                let matchIp = p.ip || "0.0.0.0";
+                                displayedIps.add(matchIp);
+                                let isBanned = bannedIps.includes(matchIp);
                                 tableHtml += `<tr>
-                                    <td><b>${p.name} ${p.surname}</b><br><small style="color:gold">💎 Pro Obunachi</small></td>
-                                    <td>${p.email || '-'}</td>
+                                    <td><b>${p.name || 'Mijoz'} ${p.surname || ''}</b><br><small style="color:gold">💎 Pro Obunachi</small></td>
+                                    <td><code>${p.telegramId || 'Mavjud emas'}</code></td>
                                     <td>${p.tarif}</td>
-                                    <td>🌐 ${p.ip}<br><small style="color:#aaa">📱 Android</small></td>
+                                    <td>🌐 ${matchIp}<br><small style="color:#aaa">📱 Android</small></td>
                                     <td>
                                         ${isBanned ? 
-                                        `<button class="table-btn-unban" onclick="tableActionUnban('${p.ip}')">🟢 O'chirish</button>` : 
-                                        `<button class="table-btn-ban" onclick="tableActionBan('${p.ip}')">🚫 Bloklash</button>`}
+                                        `<button class="table-btn-unban" onclick="tableActionUnban('${matchIp}')">🟢 O'chirish</button>` : 
+                                        `<button class="table-btn-ban" onclick="tableActionBan('${matchIp}')">🚫 Bloklash</button>`}
                                     </td>
                                 </tr>`;
                             }
@@ -384,11 +429,12 @@
                                 let isBanned = bannedIps.includes(h.ip);
                                 tableHtml += `<tr>
                                     <td><b>Mehmon / Qurilma</b><br><small style="color:#aaa">Kod: ${h.code}</small></td>
-                                    <td>-</td>
+                                    <td><code>${h.telegramId || 'Mavjud emas'}</code></td>
                                     <td>${h.tarif}</td>
                                     <td>🌐 ${h.ip}<br><small style="color:#999">📱 ${h.deviceName}</small></td>
                                     <td>
                                         ${isBanned ? 
+                                        `<button class="table-btn-unban" onclick="tableActionUnban('${h.ip}')">🟢 O'chirish</button>` : 
                                         `<button class="table-btn-unban" onclick="tableActionUnban('${h.ip}')">🟢 O'chirish</button>` : 
                                         `<button class="table-btn-ban" onclick="tableActionBan('${h.ip}')">🚫 Bloklash</button>`}
                                     </td>
@@ -421,31 +467,51 @@
         function generateVipCode(tarif, days) {
             let code = Math.floor(100000 + Math.random() * 900000);
             let today = new Date(); today.setDate(today.getDate() + days);
-            db.ref('otp_codes').push({ code, tarif, expireDate: today.toLocaleString(), expireTimestamp: today.getTime(), isOneTime: false }).then(() => {
+            let customTgId = document.getElementById('adminCustomTgId').value.trim() || "Admin Tomonidan";
+            
+            db.ref('otp_codes').push({ 
+                code, 
+                tarif, 
+                expireDate: today.toLocaleString(), 
+                expireTimestamp: today.getTime(), 
+                isOneTime: false,
+                telegramId: customTgId
+            }).then(() => {
                 document.getElementById('otpDisplay').style.display = 'block';
-                document.getElementById('otpDisplay').innerText = `Kod: ${code} | Muddat: ${days} kun`;
+                document.getElementById('otpDisplay').innerText = `Kod: ${code} | TG ID: ${customTgId}`;
+                document.getElementById('adminCustomTgId').value = "";
                 loadActiveCodes();
             });
         }
 
         function generateOneTimeCode() {
             let code = Math.floor(100000 + Math.random() * 900000);
-            db.ref('otp_codes').push({ code, tarif: "1 Martalik Kirish", isOneTime: true }).then(() => {
+            let customTgId = document.getElementById('adminCustomTgId').value.trim() || "Admin Tomonidan";
+            
+            db.ref('otp_codes').push({ 
+                code, 
+                tarif: "1 Martalik Kirish", 
+                isOneTime: true,
+                telegramId: customTgId
+            }).then(() => {
                 document.getElementById('otpDisplay').style.display = 'block';
-                document.getElementById('otpDisplay').innerText = `1 Martalik Kod: ${code}`;
+                document.getElementById('otpDisplay').innerText = `1 Martalik Kod: ${code} | TG: ${customTgId}`;
+                document.getElementById('adminCustomTgId').value = "";
                 loadActiveCodes();
             });
         }
 
         function loadActiveCodes() {
-            db.ref('otp_codes').once('value', (snap) => {
+            db.ref('otp_codes').on('value', (snap) => {
                 let html = "";
                 snap.forEach(child => {
                     let c = child.val();
                     let msk = c.isOneTime ? "1 Martalik Kirish" : `Amal qiladi: ${c.expireDate}`;
+                    let attachedTg = c.telegramId || "Mavjud emas";
                     html += `<div class="list-item">
                                 <b>🔑 Kod: <span style="color:yellow">${c.code}</span></b> [${c.tarif}]<br>
-                                <small style="color:#aaa">${msk}</small>
+                                <small style="color:#aaa">${msk}</small><br>
+                                <small style="color:cyan">TG ID: ${attachedTg}</small>
                                 <button class="cancel-code-btn" onclick="deleteCode('${child.key}')">❌</button>
                              </div>`;
                 });
