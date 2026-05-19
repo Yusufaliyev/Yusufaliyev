@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serverli Royal Roulette PRO v4.1</title>
+    <title>Royal Roulette Ultimate v5.0</title>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>
 
@@ -46,7 +46,6 @@
         }
         #spinBtn:disabled { opacity: 0.3; }
 
-        /* MODAL OYNALAR */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.95); display: none; justify-content: center;
@@ -63,21 +62,20 @@
         }
         
         .list-container {
-            max-height: 240px; overflow-y: auto; background: #000;
+            max-height: 200px; overflow-y: auto; background: #000;
             border: 1px solid gold; padding: 8px; font-size: 12px; border-radius: 5px; margin-bottom: 10px;
         }
         .list-item { padding: 8px; border-bottom: 1px solid #222; color: #fff; line-height: 1.5; position: relative; }
         .ip-text { font-size: 10px; color: #aaa; display: block; margin-top: 3px; }
         
-        /* Live qizil nuqta */
         .live-dot {
             width: 8px; height: 8px; background-color: #ff0000; border-radius: 50%;
             display: inline-block; margin-right: 5px;
             animation: blink 1s infinite alternate;
         }
         @keyframes blink {
-            from { opacity: 0.2; box-shadow: 0 0 0px #ff0000; }
-            to { opacity: 1; box-shadow: 0 0 8px #ff0000; }
+          from { opacity: 0.2; box-shadow: 0 0 0px #ff0000; }
+          to { opacity: 1; box-shadow: 0 0 8px #ff0000; }
         }
 
         #winner-overlay {
@@ -96,9 +94,9 @@
         .sub-tab-btn { background: #222; color: gold; border: 1px solid gold; padding: 6px 8px; font-size: 10px; border-radius: 4px; cursor: pointer; white-space: nowrap; flex: 1; text-align: center; }
         .sub-tab-btn.active { background: var(--gold); color: black; font-weight: bold; }
         
-        /* Boshqaruv tugmalari */
-        .ban-action-btn { position: absolute; right: 5px; top: 8px; background: #c0392b; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
-        .ban-action-btn:hover { background: red; }
+        /* Tugmalar */
+        .ban-action-btn, .cancel-code-btn { position: absolute; right: 5px; top: 8px; background: #c0392b; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
+        .ban-action-btn:hover, .cancel-code-btn:hover { background: red; }
         .unban-action-btn { position: absolute; right: 5px; top: 8px; background: #27ae60; color: white; border: none; padding: 4px 8px; font-size: 10px; font-weight: bold; border-radius: 4px; cursor: pointer; }
         .unban-action-btn:hover { background: lime; color: black; }
 
@@ -106,9 +104,8 @@
             background: #c0392b; color: white; border: 1px solid #ff4d4d;
             padding: 10px; font-weight: bold; border-radius: 6px; cursor: pointer;
             text-transform: uppercase; font-size: 11px; margin-top: 10px;
-            box-shadow: 0 0 10px rgba(192, 57, 43, 0.4); transition: 0.2s;
         }
-        .clear-db-btn:hover { background: #ff0000; box-shadow: 0 0 15px #ff0000; }
+        .clear-db-btn:hover { background: red; }
     </style>
 </head>
 <body>
@@ -178,18 +175,7 @@
         <div class="modal-content" style="max-width: 480px;">
             <h3>Admin Boshqaruv Paneli</h3>
             
-            <h4 style="color:gold; margin: 10px 0 5px 0;">💰 Obuna sotib olganlar:</h4>
-            <div class="sub-tabs">
-                <button class="sub-tab-btn active" onclick="filterSubs('all', this)">Barchasi</button>
-                <button class="sub-tab-btn" onclick="filterSubs('10$ / 1 oy', this)">10$</button>
-                <button class="sub-tab-btn" onclick="filterSubs('20$ / 3 oy', this)">20$</button>
-                <button class="sub-tab-btn" onclick="filterSubs('40$ / 6 oy', this)">40$</button>
-                <button class="sub-tab-btn" onclick="filterSubs('60$ / 1 yil', this)">60$</button>
-                <button class="sub-tab-btn" onclick="filterSubs('100$ / cheksiz', this)">100$</button>
-            </div>
-            <div id="subscribersListBlock" class="list-container"></div>
-
-            <h4 style="color:gold; margin: 10px 0 5px 0;">💎 VIP Generatsiya (KOD YARATISH):</h4>
+            <h4 style="color:gold; margin: 5px 0;">💎 KOD GENERATSIYA TIZIMI:</h4>
             <div class="sub-tabs" style="flex-wrap: wrap;">
                 <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('10$ / 1 oy', 30)">10$ (1oy)</button>
                 <button class="sub-tab-btn" style="background:#27ae60; color:white;" onclick="generateVipCode('20$ / 3 oy', 90)">20$ (3oy)</button>
@@ -199,7 +185,18 @@
             </div>
 
             <button class="tab-btn" style="width:100%; background:#e67e22; color:white; margin-top:5px;" onclick="generateOneTimeCode()">🎫 1 Martalik Kod Generatsiya</button>
-            <div id="otpDisplay" style="text-align:center; font-size:14px; font-weight:bold; color:lime; margin: 5px 0;"></div>
+            <div id="otpDisplay" style="text-align:center; font-size:13px; font-weight:bold; color:lime; margin: 5px 0; border: 1px dashed lime; padding:5px; border-radius:5px; display:none;"></div>
+
+            <h4 style="color:gold; margin: 10px 0 5px 0;">📋 Aktiv kodlar ro'yxati (Saralangan):</h4>
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" id="fCodeAll" onclick="loadActiveCodes('all')">Barchasi</button>
+                <button class="sub-tab-btn" onclick="loadActiveCodes('10$ / 1 oy')">10$</button>
+                <button class="sub-tab-btn" onclick="loadActiveCodes('20$ / 3 oy')">20$</button>
+                <button class="sub-tab-btn" onclick="loadActiveCodes('40$ / 6 oy')">40$</button>
+                <button class="sub-tab-btn" onclick="loadActiveCodes('60$ / 1 yil')">60$</button>
+                <button class="sub-tab-btn" onclick="loadActiveCodes('1 Martalik Kirish')">1 Martalik</button>
+            </div>
+            <div id="activeCodesListBlock" class="list-container"></div>
 
             <button class="tab-btn" style="width:100%; background:#c0392b; color:white; margin-top:10px;" onclick="closeModal('adminModal')">Yopish</button>
         </div>
@@ -241,7 +238,7 @@
         const ADMIN_FIXED_PASSWORD = "7777";
         
         if(!localStorage.getItem('my_unique_session_id')) {
-            localStorage.setItem('my_unique_session_id', "user_" + Math.floor(Math.random() * 1000000) + "_" + Math.floor(Math.random() * 100));
+            localStorage.setItem('my_unique_session_id', "user_" + Math.floor(Math.random() * 1000000));
         }
         let mySessionId = localStorage.getItem('my_unique_session_id');
         let userIp = "";
@@ -260,23 +257,25 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // JONLI MONITOR SONINI TEKSHIRISH
+        // 4) REAL TIME JONLI MONITOR MONITORING TINGLOVCHISI
         db.ref('online_users').on('value', (snap) => {
             let count = snap.numChildren();
             document.getElementById('onlineCounterBtn').innerText = `👀 Xozirda online (${count})`;
+            if(document.getElementById('onlineModal').style.display === 'flex' && document.getElementById('t1').classList.contains('active')) {
+                loadOnlineTab1();
+            }
         });
 
         function detectDevice() {
             const ua = navigator.userAgent;
-            if (/android/i.test(ua)) return "Android Qurilma";
-            if (/iPhone|iPad/i.test(ua)) return "iOS Qurilma";
+            if (/android/i.test(ua)) return "Android";
+            if (/iPhone|iPad/i.test(ua)) return "iOS";
             if (/Windows/i.test(ua)) return "Windows PC";
-            if (/Macintosh/i.test(ua)) return "Mac PC";
-            return "Mobil Qurilma";
+            return "Mobile";
         }
         userDevice = detectDevice();
 
-        // IP MANZILNI ANIQLASH VA TIZIMGA ULASH
+        // INICIALIZATSIYA ZANJIRI (IP MANZILSIZ ISHLAMAYDI)
         fetch('https://api.ipify.org?format=json')
             .then(res => res.json())
             .then(data => { 
@@ -284,66 +283,60 @@
                 checkBanStatusAndInit();
             })
             .catch(() => { 
-                userIp = "Yashirin_IP_" + Math.floor(Math.random()*1000); 
+                userIp = "Yashirin_" + Math.floor(Math.random()*10000); 
                 checkBanStatusAndInit();
             });
 
         function checkBanStatusAndInit() {
             db.ref('banned_users').once('value', (snap) => {
                 let isBanned = false;
-                snap.forEach(child => {
-                    if(child.val().ip === userIp) { isBanned = true; }
-                });
+                snap.forEach(child => { if(child.val().ip === userIp) isBanned = true; });
 
                 if(isBanned) {
-                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%; font-family:sans-serif;'>🚫 Siz tizim xavfsizligi tomonidan BLOKLANGANSIZ!</h1>";
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%; font-family:sans-serif;'>🚫 Kirish Taqiqlangan! Tizim tomonidan bloklangansiz!</h1>";
                     return;
                 }
                 startAccessVerification();
             });
         }
 
+        // 1) VA 2) HAR SAFAR KOD BILAN KIRISH VA MUDDATINI TEKSHIRISH
         function startAccessVerification() {
-            let savedCode = localStorage.getItem('my_saved_auth_code');
-            let savedTarif = localStorage.getItem('my_saved_auth_tarif');
-            let isAdmin = localStorage.getItem('my_admin_status') === 'true';
+            // sessionStorage brauzer yopilganda yoki yangilanganda o'chadi, shu sabab har safar kod so'raydi.
+            let sessionCode = sessionStorage.getItem('session_auth_code');
+            let sessionTarif = sessionStorage.getItem('session_auth_tarif');
+            let isAdmin = sessionStorage.getItem('session_admin_status') === 'true';
 
-            if (savedCode || isAdmin) {
-                if (isAdmin) {
-                    document.getElementById('adminMenuBlock').style.display = 'flex';
-                }
-                initUserPresence(savedCode || "Admin Parol", savedTarif || "To'liq Administrator");
+            if (sessionCode || isAdmin) {
+                if (isAdmin) document.getElementById('adminMenuBlock').style.display = 'flex';
+                initUserPresence(sessionCode || "Admin Parol", sessionTarif || "Administrator");
             } else {
                 let attempts = parseInt(localStorage.getItem('login_attempts') || "0");
                 if (attempts >= 3) {
                     db.ref('banned_users').push({ ip: userIp, device: userDevice, time: new Date().toLocaleString() });
-                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%; font-family:sans-serif;'>🚫 Ketma-ket 3 marta noto'g'ri kod! Siz BLOKLANDANSIZ!</h1>";
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20%;'>🚫 3 marta xato urinish! BLOKLANDINGIZ!</h1>";
                     return;
                 }
 
-                let userPass = prompt(`Ilovaga kirish kodini kiriting (Qolgan urinishlar: ${3 - attempts}):`);
+                let userPass = prompt(`Kirish kodini kiriting (Urinishlar: ${3 - attempts}):`);
                 if (!userPass) {
-                    document.body.innerHTML = "<div style='text-align:center; margin-top:20%; font-family:sans-serif;'><h1 style='color:orange;'>Kod kiritilmadi</h1><button onclick='location.reload()' style='padding:10px 20px; font-size:18px; cursor:pointer;'>Qayta urunish</button></div>";
+                    document.body.innerHTML = "<div style='text-align:center; margin-top:20%;'><h2 style='color:orange;'>Kod kiritilmadi.</h2><button onclick='location.reload()'>Qayta yuklash</button></div>";
                     return;
                 }
 
                 if (userPass === ADMIN_FIXED_PASSWORD) {
-                    localStorage.setItem('my_admin_status', 'true');
+                    sessionStorage.setItem('session_admin_status', 'true');
                     localStorage.setItem('login_attempts', "0");
-                    alert("Admin panel muvaffaqiyatli ochildi!");
                     location.reload();
                 } else if (userPass === MAIN_PASSWORD) {
-                    localStorage.setItem('my_saved_auth_code', userPass);
-                    localStorage.setItem('my_saved_auth_tarif', "Cheksiz (Asosiy Parol)");
+                    sessionStorage.setItem('session_auth_code', userPass);
+                    sessionStorage.setItem('session_auth_tarif', "Asosiy Parol (Cheksiz)");
                     localStorage.setItem('login_attempts', "0");
-                    alert("Xush kelibsiz!");
                     location.reload();
                 } else {
                     db.ref('otp_codes').once('value', (snap) => {
-                        let valid = false;
-                        let selectedNode = null;
-                        let nodeKey = null;
-                        let nowMs = new Date().getTime();
+                        let valid = false; let selectedNode = null; let nodeKey = null;
+                        let serverTimeMs = new Date().getTime();
 
                         snap.forEach(child => {
                             let c = child.val();
@@ -351,18 +344,20 @@
                                 if (c.isOneTime) {
                                     valid = true; selectedNode = c; nodeKey = child.key;
                                 } else {
-                                    if (nowMs <= c.expireTimestamp) { valid = true; selectedNode = c; }
+                                    // Tarif vaqtiga qadar amal qilishini tekshirish
+                                    if (serverTimeMs <= c.expireTimestamp) { valid = true; selectedNode = c; }
                                 }
                             }
                         });
 
                         if (valid) {
-                            localStorage.setItem('my_saved_auth_code', userPass);
-                            localStorage.setItem('my_saved_auth_tarif', selectedNode.tarif);
+                            sessionStorage.setItem('session_auth_code', userPass);
+                            sessionStorage.setItem('session_auth_tarif', selectedNode.tarif);
                             localStorage.setItem('login_attempts', "0");
 
+                            // 2) 1 martalik kod bo'lsa darhol bazadan o'chadi
                             if(selectedNode.isOneTime) { db.ref(`otp_codes/${nodeKey}`).remove(); }
-                            alert(`Kod tasdiqlandi! Xush kelibsiz.`);
+                            alert(`Muvaffaqiyatli kirildi! Tarif: ${selectedNode.tarif}`);
                             location.reload();
                         } else {
                             attempts++;
@@ -371,7 +366,7 @@
                                 db.ref('banned_users').push({ ip: userIp, device: userDevice, time: new Date().toLocaleString() });
                                 alert("Siz bloklandingiz!");
                             } else {
-                                alert(`Kod xato yoki muddati tugagan! Qolgan urinishlar: ${3 - attempts}`);
+                                alert(`Kod xato yoki vaqti tugagan!`);
                             }
                             location.reload();
                         }
@@ -381,112 +376,79 @@
         }
 
         function initUserPresence(code, tarif) {
-            if(!userIp) return; 
-            
+            if(!userIp) return;
             const myConnectionsRef = db.ref(`online_users/${mySessionId}`);
             const lastOnlineRef = db.ref(`history_users/${mySessionId}`);
-            
             const myData = {
-                sessionId: mySessionId,
-                deviceName: userDevice,
-                ip: userIp,
-                tarif: tarif,
-                code: code,
-                loginTime: new Date().toLocaleString(),
-                lastActive: new Date().getTime()
+                sessionId: mySessionId, deviceName: userDevice, ip: userIp,
+                tarif: tarif, code: code, loginTime: new Date().toLocaleString(), lastActive: new Date().getTime()
             };
-
             myConnectionsRef.setValue(myData);
             lastOnlineRef.setValue(myData);
             myConnectionsRef.onDisconnect().remove();
         }
 
-        // --- ASOSIY RULETKA LOGIKASI ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const spinBtn = document.getElementById('spinBtn');
-        const status = document.getElementById('status');
-        const bgMsc = document.getElementById('bgMsc');
-        const spinSnd = document.getElementById('spinSnd');
-        const winSnd = document.getElementById('winSnd');
-        
-        let images = [], wheelBgImage = null, rotation = 0, isSpinning = false;
-        const cw = 500, cx = 250, outerR = 240, innerR = 195, imgSlotR = 215, ballTrackR = 175;
-        let ball = { angle: 0, speed: 0, r: ballTrackR };
-
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        function toggleMenu() { document.getElementById('side-panel').classList.toggle('open'); }
-
-        function openRegModal(tarif) {
-            document.getElementById('selectedTarifTitle').innerText = "Tarif: " + tarif;
-            document.getElementById('regModal').style.display = 'flex';
-        }
-
-        function saveRegistration() {
-            const name = document.getElementById('regName').value.trim();
-            const surname = document.getElementById('regSurname').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-            if(!name || !surname || !email) return alert("Barcha maydonlarni to'ldiring!");
-
-            const regData = { 
-                name, surname, email, 
-                tarif: document.getElementById('selectedTarifTitle').innerText.replace("Tarif: ", ""), 
-                deviceName: userDevice, ip: userIp, time: new Date().toLocaleString() 
-            };
-            
-            db.ref('pro_users').push(regData).then(() => {
-                alert("Ro'yxatdan o'tdingiz! Admin kod bergach foydalana olasiz.");
-                closeModal('regModal');
-            });
-        }
-
-        // --- ADMIN PANEL — OBUNA VA KOD YARATISH ---
+        // --- ADMIN PANELI VA GENERATSIYA LOGIKASI ---
         function openAdminModal() {
             document.getElementById('adminModal').style.display = 'flex';
-            filterSubs('all', document.querySelector('.sub-tabs .sub-tab-btn'));
-        }
-
-        function filterSubs(tarif, element) {
-            document.querySelectorAll('.sub-tabs .sub-tab-btn').forEach(b => b.classList.remove('active'));
-            if(element) element.classList.add('active');
-
-            db.ref('pro_users').once('value', (snap) => {
-                let html = "";
-                snap.forEach(child => {
-                    let u = child.val();
-                    if(tarif === 'all' || u.tarif === tarif) {
-                        html += `<div class="list-item">
-                                    <b>🎁 Tarif: ${u.tarif}</b><br>
-                                    👤 Ism: ${u.name} ${u.surname} | 📧 ${u.email}<br>
-                                    <span class="ip-text">📱 ${u.deviceName} | 🌐 IP: ${u.ip}</span>
-                                 </div>`;
-                    }
-                });
-                document.getElementById('subscribersListBlock').innerHTML = html || "Bu tarifda hozircha obunachi yo'q.";
-            });
+            loadActiveCodes('all');
         }
 
         function generateVipCode(tarif, days) {
-            let code = Math.floor(1000 + Math.random() * 9000);
+            let code = Math.floor(100000 + Math.random() * 900000); // 6 xonali professional kod
             let today = new Date(); today.setDate(today.getDate() + days);
-            let expireString = today.toLocaleString();
-            let expireTimestamp = today.getTime();
-
-            let codeData = { code, tarif, expireDate: expireString, expireTimestamp, isOneTime: false, createdAt: new Date().toLocaleString() };
+            let codeData = { code, tarif, expireDate: today.toLocaleString(), expireTimestamp: today.getTime(), isOneTime: false };
             db.ref('otp_codes').push(codeData).then(() => {
-                document.getElementById('otpDisplay').innerHTML = `Yaratildi: <span style="color:yellow; font-size:16px;">${code}</span> (Tarif: ${tarif})<br>Muddati: ${expireString} gacha`;
+                showGeneratedDisplay(`Kod: ${code} | Tarif: ${tarif}\nMuddati: ${today.toLocaleString()}`);
+                loadActiveCodes('all');
             });
         }
 
         function generateOneTimeCode() {
-            let code = Math.floor(1000 + Math.random() * 9000);
-            let codeData = { code, tarif: "1 Martalik Kirish", isOneTime: true, createdAt: new Date().toLocaleString() };
+            let code = Math.floor(100000 + Math.random() * 900000);
+            let codeData = { code, tarif: "1 Martalik Kirish", isOneTime: true };
             db.ref('otp_codes').push(codeData).then(() => {
-                document.getElementById('otpDisplay').innerHTML = `🎫 Kod: <span style="color:cyan; font-size:18px;">${code}</span><br><small>(1 martalik)</small>`;
+                showGeneratedDisplay(`1 Martalik Kod: ${code}`);
+                loadActiveCodes('all');
             });
         }
 
-        // --- ONLINE MONITOR VA BLOKLASH BO'LIMI ---
+        function showGeneratedDisplay(text) {
+            let block = document.getElementById('otpDisplay');
+            block.style.display = 'block';
+            block.innerText = text;
+        }
+
+        // 3) GENERATSIYA BO'LIMIDA KODLARNI SARALASH VA BEKOR QILISH
+        function loadActiveCodes(filterTarif) {
+            document.querySelectorAll('#adminModal .sub-tab-btn').forEach(b => b.classList.remove('active'));
+            db.ref('otp_codes').once('value', (snap) => {
+                let html = "";
+                snap.forEach(child => {
+                    let c = child.val();
+                    if(filterTarif === 'all' || c.tarif === filterTarif) {
+                        let msk = c.isOneTime ? "1 Martalik" : `Muddati: ${c.expireDate}`;
+                        html += `<div class="list-item">
+                                    <b>🔑 Kod: <span style="color:yellow">${c.code}</span></b> [${c.tarif}]<br>
+                                    <small style="color:#aaa">${msk}</small>
+                                    <button class="cancel-code-btn" onclick="deleteCode('${child.key}')">❌ Bekor qilish</button>
+                                 </div>`;
+                    }
+                });
+                document.getElementById('activeCodesListBlock').innerHTML = html || "Faol kodlar mavjud emas.";
+            });
+        }
+
+        function deleteCode(key) {
+            if(confirm("Ushbu kodni bekor qilmoqchimisiz? Uni ishlatayotganlar o'yinga kirolmay qoladi.")) {
+                db.ref(`otp_codes/${key}`).remove().then(() => {
+                    alert("Kod muvaffaqiyatli o'chirildi (Bekor qilindi).");
+                    loadActiveCodes('all');
+                });
+            }
+        }
+
+        // --- MONITORING BO'LIMI FUNKSIYALARI ---
         function openOnlineModal() {
             document.getElementById('onlineModal').style.display = 'flex';
             switchMonitorTab(1);
@@ -520,8 +482,8 @@
                     let o = child.val();
                     html += `<div class="list-item">
                                 <span class="live-dot"></span> <b>Tarif: ${o.tarif}</b><br>
-                                📱 Qurilma: ${o.deviceName} <br>
-                                <span class="ip-text">🌐 IP: ${o.ip} (Kod: ${o.code})</span>
+                                📱 Qurilma: ${o.deviceName} | Kod: <span style="color:cyan">${o.code}</span><br>
+                                <span class="ip-text">🌐 IP: ${o.ip}</span>
                              </div>`;
                 });
                 document.getElementById('onlineTab1Block').innerHTML = html || "Faol onlayn foydalanuvchilar yo'q.";
@@ -536,8 +498,7 @@
                 arr.forEach((o, index) => {
                     html += `<div class="list-item">
                                 <b>#${index + 1} Tarif: ${o.tarif}</b> | Kod: <span style="color:cyan">${o.code}</span><br>
-                                📱 Qurilma: ${o.deviceName} <span class="ip-text">🌐 IP: ${o.ip}</span>
-                                <small style="color:orange">Kirgan vaqti: ${o.loginTime}</small>
+                                📱 Qurilma: ${o.deviceName} <span class="ip-text">🌐 IP: ${o.ip} | Vaqt: ${o.loginTime}</span>
                              </div>`;
                 });
                 document.getElementById('onlineTab2Block').innerHTML = html || "Tarix bo'sh.";
@@ -550,38 +511,29 @@
                     let bannedIps = [];
                     banSnap.forEach(b => { bannedIps.push(b.val().ip); });
 
-                    let html = "<h4 style='color:gold;margin:5px 0;'>Foydalanuvchilar holati:</h4>";
-                    let count = 0;
-
+                    let html = "<h4 style='color:gold;margin:5px 0;'>Barcha kirgan qurilmalar ro'yxati:</h4>";
                     histSnap.forEach(child => {
                         let u = child.val();
                         if(u.code !== "Admin Parol") { 
-                            count++;
                             let isCurrentlyBanned = bannedIps.includes(u.ip);
-                            
                             html += `<div class="list-item" style="border-left: 3px solid ${isCurrentlyBanned ? 'red':'lime'}; padding-left:8px;">
-                                        <b>Tarif: ${u.tarif}</b> | Kod: <span style="color:yellow; font-weight:bold;">${u.code}</span><br>
-                                        📱 Qurilma: ${u.deviceName} | 🌐 IP: ${u.ip}<br>
-                                        <small style="color:#aaa">Oxirgi faollik: ${u.loginTime}</small>
-                                        
+                                        <b>Tarif: ${u.tarif}</b> | Kod: <span style="color:yellow">${u.code}</span><br>
+                                        📱 Qurilma: ${u.deviceName} | IP: ${u.ip}<br>
                                         ${isCurrentlyBanned ? 
                                         `<button class="unban-action-btn" onclick="actionUnban('${u.ip}')">🟢 Blokdan ochish</button>` : 
                                         `<button class="ban-action-btn" onclick="actionBan('${u.ip}','${u.deviceName}')">🚫 Bloklash</button>`}
                                      </div>`;
                         }
                     });
-
-                    if(count === 0) html += "<p>Tizimda boshqa foydalanuvchi topilmadi.</p>";
                     document.getElementById('onlineTab3Block').innerHTML = html;
                 });
             });
         }
 
         function actionBan(ip, device) {
-            if(confirm("Ushbu qurilmani bloklashni tasdiqlaysizmi?")) {
+            if(confirm("Ushbu foydalanuvchini bloklamoqchimisiz?")) {
                 db.ref('banned_users').push({ ip: ip, device: device, time: new Date().toLocaleString() }).then(() => {
-                    alert("Qurilma bloklandi!");
-                    loadOnlineTab3();
+                    alert("Bloklandi!"); loadOnlineTab3();
                 });
             }
         }
@@ -591,88 +543,81 @@
                 snap.forEach(child => {
                     if(child.val().ip === ip) {
                         db.ref(`banned_users/${child.key}`).remove().then(() => {
-                            alert("Qurilma blokdan ochildi!");
-                            loadOnlineTab3();
+                            alert("Blokdan ochildi!"); loadOnlineTab3();
                         });
                     }
                 });
             });
         }
 
-        // --- BAZANI BUTUNLAY TOZALASH ---
         function clearFullDatabase() {
-            if(localStorage.getItem('my_admin_status') !== 'true') return alert("Huquqingiz yo'q!");
-            if(confirm("⚠️ DIQQAT! Platformadagi barcha rasmlar, musiqalar, foydalanuvchilar va VIP kodlar butunlay o'chib ketadi. Rozimisiz?")) {
-                if(confirm("🛑 Qaroringiz qat'iymi? Bu amalni ortga qaytarib bo'lmaydi!")) {
-                    status.innerText = "Baza tozalanmoqda...";
-                    let nodesToClear = ['royal_data', 'otp_codes', 'pro_users', 'online_users', 'history_users'];
-                    let promises = nodesToClear.map(node => db.ref(node).remove());
-
-                    Promise.all(promises).then(() => {
-                        alert("Baza muvaffaqiyatli tozalandi! Tizim qayta yuklanadi.");
-                        location.reload();
-                    });
-                }
+            if(confirm("Barcha ma'lumotlarni o'chirishni xohlaysizmi?")) {
+                let nodes = ['royal_data', 'otp_codes', 'online_users', 'history_users'];
+                let promises = nodes.map(n => db.ref(n).remove());
+                Promise.all(promises).then(() => { alert("Tozalandi!"); location.reload(); });
             }
         }
 
-        // --- MULTIMEDIA VA SERVEDAN SINXRONIZATSIYA ---
+        // --- RULETKA VIZUAL KODLARI ---
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const status = document.getElementById('status');
+        const bgMsc = document.getElementById('bgMsc');
+        const spinSnd = document.getElementById('spinSnd');
+        const winSnd = document.getElementById('winSnd');
+        
+        let images = [], wheelBgImage = null, rotation = 0, isSpinning = false;
+        const cw = 500, cx = 250, outerR = 240, innerR = 195, imgSlotR = 215, ballTrackR = 175;
+        let ball = { angle: 0, speed: 0, r: ballTrackR };
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function toggleMenu() { document.getElementById('side-panel').classList.toggle('open'); }
+        function openRegModal(tarif) { document.getElementById('selectedTarifTitle').innerText = "Tarif: " + tarif; document.getElementById('regModal').style.display = 'flex'; }
+
+        function saveRegistration() {
+            const name = document.getElementById('regName').value.trim();
+            const surname = document.getElementById('regSurname').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            if(!name || !surname || !email) return alert("To'ldiring!");
+            db.ref('pro_users').push({ name, surname, email, tarif: document.getElementById('selectedTarifTitle').innerText, ip: userIp, time: new Date().toLocaleString() }).then(() => { alert("Yuborildi!"); closeModal('regModal'); });
+        }
+
         function toggleMsc() {
             const btn = document.getElementById('mscToggleBtn');
             if(bgMsc.paused) { bgMsc.play().catch(()=>{}); btn.innerText = "🎵 Musiqani o'chirish"; btn.style.background = "#27ae60"; }
             else { bgMsc.pause(); btn.innerText = "🔇 Musiqani yoqish"; btn.style.background = "#c0392b"; }
         }
 
-        function save(key, val) { if(localStorage.getItem('my_admin_status') === 'true') db.ref('royal_data/' + key).set(val); }
+        function save(key, val) { if(sessionStorage.getItem('session_admin_status') === 'true') db.ref('royal_data/' + key).set(val); }
 
-        document.getElementById('bgInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result); r.readAsDataURL(e.target.files[0]);
-        };
-        document.getElementById('wheelBgInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('wBg', ev.target.result); r.readAsDataURL(e.target.files[0]);
-        };
+        document.getElementById('bgInput').onchange = (e) => { const r = new FileReader(); r.onload = (ev) => save('bg', ev.target.result); r.readAsDataURL(e.target.files[0]); };
+        document.getElementById('wheelBgInput').onchange = (e) => { const r = new FileReader(); r.onload = (ev) => save('wBg', ev.target.result); r.readAsDataURL(e.target.files[0]); };
         document.getElementById('fileInput').onchange = (e) => {
             const files = Array.from(e.target.files); const urls = [];
             files.forEach(f => {
-                const r = new FileReader();
-                r.onload = (ev) => { urls.push(ev.target.result); if(urls.length === files.length) save('imgs', urls); };
-                r.readAsDataURL(f);
+                const r = new FileReader(); r.onload = (ev) => { urls.push(ev.target.result); if(urls.length === files.length) save('imgs', urls); }; r.readAsDataURL(f);
             });
         };
-        document.getElementById('spinAudioInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('spinAudio', ev.target.result); r.readAsDataURL(e.target.files[0]);
-        };
-        document.getElementById('winAudioInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('winAudio', ev.target.result); r.readAsDataURL(e.target.files[0]);
-        };
-        document.getElementById('bgAudioInput').onchange = (e) => {
-            const r = new FileReader(); r.onload = (ev) => save('bgAudio', ev.target.result); r.readAsDataURL(e.target.files[0]);
-        };
+        document.getElementById('spinAudioInput').onchange = (e) => { const r = new FileReader(); r.onload = (ev) => save('spinAudio', ev.target.result); r.readAsDataURL(e.target.files[0]); };
+        document.getElementById('winAudioInput').onchange = (e) => { const r = new FileReader(); r.onload = (ev) => save('winAudio', ev.target.result); r.readAsDataURL(e.target.files[0]); };
+        document.getElementById('bgAudioInput').onchange = (e) => { const r = new FileReader(); r.onload = (ev) => save('bgAudio', ev.target.result); r.readAsDataURL(e.target.files[0]); };
 
         function loadFromServer() {
-            status.innerText = "Server yuklanmoqda...";
+            status.innerText = "Yuklanmoqda...";
             db.ref('royal_data').on('value', (snap) => {
-                const data = snap.val(); 
-                if(!data) {
-                    document.body.style.backgroundImage = "none"; wheelBgImage = null; images = []; spinBtn.disabled = true; draw();
-                    status.innerText = "Baza bo'sh ⚠️ Fayllarni yuklang"; return;
-                }
+                const data = snap.val(); if(!data) return;
                 if(data.bg) document.body.style.backgroundImage = `url(${data.bg})`;
                 if(data.wBg) { const img = new Image(); img.onload = () => { wheelBgImage = img; draw(); }; img.src = data.wBg; }
                 if(data.imgs) {
                     images = [];
                     data.imgs.forEach((url) => {
-                        const img = new Image(); img.onload = () => { images.push(img); if(images.length === data.imgs.length) { spinBtn.disabled = false; draw(); } };
-                        img.src = url;
+                        const img = new Image(); img.onload = () => { images.push(img); if(images.length === data.imgs.length) { spinBtn.disabled = false; draw(); } }; img.src = url;
                     });
                 }
-                if(data.spinAudio) spinSnd.src = data.spinAudio;
-                if(data.winAudio) winSnd.src = data.winAudio;
-                if(data.bgAudio && bgMsc.src !== data.bgAudio) {
-                    bgMsc.src = data.bgAudio; bgMsc.volume = 0.4;
-                    bgMsc.play().catch(() => console.log("Musiqa chalinishi kutilmoqda..."));
-                }
-                status.innerText = "Server Sinxronlandi ✅";
+                if(data.spinAudio) spinSnd.src = data.spinAudio; if(data.winAudio) winSnd.src = data.winAudio;
+                if(data.bgAudio && bgMsc.src !== data.bgAudio) { bgMsc.src = data.bgAudio; bgMsc.volume = 0.3; bgMsc.play().catch(()=>{}); }
+                status.innerText = "Sinxronlandi ✅";
             });
         }
 
@@ -692,9 +637,8 @@
                     ctx.drawImage(img, -35, -imgSlotR-35, 70, 70); ctx.restore();
                 });
             }
-            ctx.save(); ctx.save(); ctx.translate(cx,cx); ctx.rotate(ball.angle);
-            ctx.beginPath(); ctx.arc(ball.r, 0, 11, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.shadowBlur = 10; ctx.shadowColor = "#fff"; ctx.fill();
-            ctx.restore(); ctx.restore();
+            ctx.save(); ctx.translate(cx,cx); ctx.rotate(ball.angle);
+            ctx.beginPath(); ctx.arc(ball.r, 0, 11, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.restore();
         }
 
         function resetGame() { rotation = 0; ball.angle = 0; ball.speed = 0; draw(); }
@@ -726,3 +670,5 @@
     </script>
 </body>
 </html>
+
+     
